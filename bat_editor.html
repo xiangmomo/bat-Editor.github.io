@@ -1,0 +1,2882 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bat文件编辑器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                        secondary: '#10b981',
+                        neutral: '#f3f4f6',
+                        module: '#6366f1',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                },
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .scrollbar-thin {
+                scrollbar-width: thin;
+            }
+            .scrollbar-thumb-rounded {
+                scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+            }
+            .no-scrollbar::-webkit-scrollbar {
+                display: none;
+            }
+            .draggable {
+                cursor: grab;
+                transition: all 0.2s;
+            }
+            .draggable:active {
+                cursor: grabbing;
+            }
+            .dropzone {
+                transition: all 0.2s;
+            }
+            .dropzone.highlight {
+                background-color: rgba(59, 130, 246, 0.1);
+                border-color: #3b82f6;
+            }
+            .step-item {
+                transition: all 0.3s;
+            }
+            .step-item:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans">
+    <div class="flex flex-col min-h-screen">
+        <!-- 顶部导航栏 -->
+        <header class="bg-white shadow-md">
+            <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <i class="fa fa-code text-primary text-2xl"></i>
+                    <h1 class="text-xl font-bold text-gray-800">Bat 文件编辑器</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button id="new-btn" class="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-md flex items-center space-x-2 transition-colors">
+                        <i class="fa fa-plus"></i>
+                        <span>新建</span>
+                    </button>
+                    <button id="download-btn" class="bg-secondary hover:bg-secondary/90 text-white px-4 py-2 rounded-md flex items-center space-x-2 transition-colors">
+                        <i class="fa fa-download"></i>
+                        <span>下载 .bat</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- 主要内容区域 -->
+        <main class="flex-grow container mx-auto px-4 py-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- 左侧功能模块区域 -->
+                <div class="bg-white rounded-lg shadow-md p-4 h-full">
+                    <h2 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-200">
+                        <i class="fa fa-puzzle-piece text-primary mr-2"></i>功能模块
+                    </h2>
+                    <div class="space-y-3 max-h-[600px] overflow-y-auto scrollbar-thin scrollbar-thumb-rounded">
+                        <!-- 文件操作模块 -->
+                        <div class="bg-neutral rounded-lg p-3">
+                            <h3 class="font-medium text-gray-700 mb-2">文件操作</h3>
+                            <div class="space-y-2">
+                                <div class="draggable bg-white p-2 rounded border border-gray-200 hover:border-module flex items-center justify-between shadow-sm cursor-grab" draggable="true" data-type="copy_file">
+                                    <span><i class="fa fa-file-text-o text-module mr-2"></i>复制文件</span>
+                                    <i class="fa fa-arrows text-gray-400"></i>
+                                </div>
+                                <div class="draggable bg-white p-2 rounded border border-gray-200 hover:border-module flex items-center justify-between shadow-sm cursor-grab" draggable="true" data-type="move_file">
+                                    <span><i class="fa fa-file-o text-module mr-2"></i>移动文件</span>
+                                    <i class="fa fa-arrows text-gray-400"></i>
+                                </div>
+                                <div class="draggable bg-white p-2 rounded border border-gray-200 hover:border-module flex items-center justify-between shadow-sm cursor-grab" draggable="true" data-type="delete_file">
+                                    <span><i class="fa fa-trash text-red-500 mr-2"></i>删除文件</span>
+                                    <i class="fa fa-arrows text-gray-400"></i>
+                                </div>
+                                <div class="draggable bg-white p-2 rounded border border-gray-200 hover:border-module flex items-center justify-between shadow-sm cursor-grab" draggable="true" data-type="create_file">
+                                    <span><i class="fa fa-file-o text-green-500 mr-2"></i>创建文件</span>
+                                    <i class="fa fa-arrows text-gray-400"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 文件夹操作模块 -->
+                        <div class="bg-neutral rounded-lg p-3">
+                            <h3 class="font-medium text-gray-700 mb-2">文件夹操作</h3>
+                            <div class="space-y-2">
+                                <div class="draggable bg-white p-2 rounded border border-gray-200 hover:border-module flex items-center justify-between shadow-sm cursor-grab" draggable="true" data-type="copy_folder">
+                                    <span><i class="fa fa-folder text-module mr-2"></i>复制文件夹</span>
+                                    <i class="fa fa-arrows text-gray-400"></i>
+                                </div>
+                                <div class="draggable bg-white p-2 rounded border border-gray-200 hover:border-module flex items-center justify-between shadow-sm cursor-grab" draggable="true" data-type="move_folder">
+                                    <span><i class="fa fa-folder-open text-module mr-2"></i>移动文件夹</span>
+                                    <i class="fa fa-arrows text-gray-400"></i>
+                                </div>
+                                <div class="draggable bg-white p-2 rounded border border-gray-200 hover:border-module flex items-center justify-between shadow-sm cursor-grab" draggable="true" data-type="delete_folder">
+                                    <span><i class="fa fa-trash text-red-500 mr-2"></i>删除文件夹</span>
+                                    <i class="fa fa-arrows text-gray-400"></i>
+                                </div>
+                                <div class="draggable bg-white p-2 rounded border border-gray-200 hover:border-module flex items-center justify-between shadow-sm cursor-grab" draggable="true" data-type="create_folder">
+                                    <span><i class="fa fa-folder text-green-500 mr-2"></i>创建文件夹</span>
+                                    <i class="fa fa-arrows text-gray-400"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 系统操作模块 -->
+                        <div class="bg-neutral rounded-lg p-3">
+                            <h3 class="font-medium text-gray-700 mb-2">系统操作</h3>
+                            <div class="space-y-2">
+                                <div class="draggable bg-white p-2 rounded border border-gray-200 hover:border-module flex items-center justify-between shadow-sm cursor-grab" draggable="true" data-type="echo">
+                                    <span><i class="fa fa-comment text-blue-500 mr-2"></i>显示文本</span>
+                                    <i class="fa fa-arrows text-gray-400"></i>
+                                </div>
+                                <div class="draggable bg-white p-2 rounded border border-gray-200 hover:border-module flex items-center justify-between shadow-sm cursor-grab" draggable="true" data-type="pause">
+                                    <span><i class="fa fa-pause text-yellow-500 mr-2"></i>暂停</span>
+                                    <i class="fa fa-arrows text-gray-400"></i>
+                                </div>
+                                <div class="draggable bg-white p-2 rounded border border-gray-200 hover:border-module flex items-center justify-between shadow-sm cursor-grab" draggable="true" data-type="start">
+                    <span><i class="fa fa-play text-green-500 mr-2"></i>启动程序</span>
+                    <i class="fa fa-arrows text-gray-400"></i>
+                </div>
+                
+                <!-- 新增模块 -->
+                <div class="draggable bg-white p-2 rounded border border-gray-200 hover:border-module flex items-center justify-between shadow-sm cursor-grab" draggable="true" data-type="copy_folder_rename">
+                    <span><i class="fa fa-copy text-module mr-2"></i>复制文件夹并改名</span>
+                    <i class="fa fa-arrows text-gray-400"></i>
+                </div>
+                
+                <div class="draggable bg-white p-2 rounded border border-gray-200 hover:border-module flex items-center justify-between shadow-sm cursor-grab" draggable="true" data-type="copy_file_rename">
+                    <span><i class="fa fa-copy text-module mr-2"></i>复制文件并改名</span>
+                    <i class="fa fa-arrows text-gray-400"></i>
+                </div>
+                
+                <div class="draggable bg-white p-2 rounded border border-gray-200 hover:border-module flex items-center justify-between shadow-sm cursor-grab" draggable="true" data-type="pause_seconds">
+                    <span><i class="fa fa-clock-o text-yellow-500 mr-2"></i>暂停运行x秒</span>
+                    <i class="fa fa-arrows text-gray-400"></i>
+                </div>
+                
+                <div class="draggable bg-white p-2 rounded border border-gray-200 hover:border-module flex items-center justify-between shadow-sm cursor-grab" draggable="true" data-type="modify_ini">
+                    <span><i class="fa fa-cog text-blue-500 mr-2"></i>修改ini配置</span>
+                    <i class="fa fa-arrows text-gray-400"></i>
+                </div>
+                
+                <div class="draggable bg-white p-2 rounded border border-gray-200 hover:border-module flex items-center justify-between shadow-sm cursor-grab" draggable="true" data-type="copy_modify_ini">
+                    <span><i class="fa fa-copy text-blue-500 mr-2"></i>复制ini配置并修改</span>
+                    <i class="fa fa-arrows text-gray-400"></i>
+                </div>
+                
+                <div class="draggable bg-white p-2 rounded border border-gray-200 hover:border-module flex items-center justify-between shadow-sm cursor-grab" draggable="true" data-type="copy_folder_replace">
+                    <span><i class="fa fa-copy text-green-500 mr-2"></i>复制并替换</span>
+                    <i class="fa fa-arrows text-gray-400"></i>
+                </div>
+                
+                <div class="draggable bg-white p-2 rounded border border-gray-200 hover:border-module flex items-center justify-between shadow-sm cursor-grab" draggable="true" data-type="register_dll_ocx">
+                    <span><i class="fa fa-plug text-purple-500 mr-2"></i>注册dll和ocx</span>
+                    <i class="fa fa-arrows text-gray-400"></i>
+                </div>
+                
+                <div class="draggable bg-white p-2 rounded border border-gray-200 hover:border-module flex items-center justify-between shadow-sm cursor-grab" draggable="true" data-type="call_other_bat">
+                    <span><i class="fa fa-file-text-o text-orange-500 mr-2"></i>调用其他bat</span>
+                    <i class="fa fa-arrows text-gray-400"></i>
+                </div>
+                <div class="draggable bg-white p-2 rounded border border-gray-200 hover:border-module flex items-center justify-between shadow-sm cursor-grab" draggable="true" data-type="close_process">
+                    <span><i class="fa fa-power-off text-red-500 mr-2"></i>关闭软件进程</span>
+                    <i class="fa fa-arrows text-gray-400"></i>
+                </div>
+                <div class="draggable bg-white p-2 rounded border border-gray-200 hover:border-module flex items-center justify-between shadow-sm cursor-grab" draggable="true" data-type="connect_network_drive">
+                <span><i class="fa fa-hdd-o text-blue-500 mr-2"></i>连接映射盘</span>
+                <i class="fa fa-arrows text-gray-400"></i>
+            </div>
+            <div class="draggable bg-white p-2 rounded border border-gray-200 hover:border-module flex items-center justify-between shadow-sm cursor-grab" draggable="true" data-type="start_console_app">
+                <span><i class="fa fa-terminal text-green-500 mr-2"></i>启动黑窗口软件</span>
+                <i class="fa fa-arrows text-gray-400"></i>
+            </div>
+            <div class="draggable bg-white p-2 rounded border border-gray-200 hover:border-module flex items-center justify-between shadow-sm cursor-grab" draggable="true" data-type="network_ping">
+                <span><i class="fa fa-wifi text-cyan-500 mr-2"></i>网络测试</span>
+                <i class="fa fa-arrows text-gray-400"></i>
+            </div>
+            <div class="draggable bg-white p-2 rounded border border-gray-200 hover:border-module flex items-center justify-between shadow-sm cursor-grab" draggable="true" data-type="schedule_shutdown">
+                <span><i class="fa fa-power-off text-orange-500 mr-2"></i>定时关机</span>
+                <i class="fa fa-arrows text-gray-400"></i>
+            </div>
+            <div class="draggable bg-white p-2 rounded border border-gray-200 hover:border-module flex items-center justify-between shadow-sm cursor-grab" draggable="true" data-type="text_color">
+                <span><i class="fa fa-paint-brush text-purple-500 mr-2"></i>修改字体颜色</span>
+                <i class="fa fa-arrows text-gray-400"></i>
+            </div>
+            <div class="draggable bg-white p-2 rounded border border-gray-200 hover:border-module flex items-center justify-between shadow-sm cursor-grab" draggable="true" data-type="if_condition">
+                <span><i class="fa fa-code-fork text-blue-500 mr-2"></i>IF判断</span>
+                <i class="fa fa-arrows text-gray-400"></i>
+            </div>
+            <div class="draggable bg-white p-2 rounded border border-gray-200 hover:border-module flex items-center justify-between shadow-sm cursor-grab" draggable="true" data-type="user_input">
+                <span><i class="fa fa-terminal text-red-500 mr-2"></i>用户输入</span>
+                <i class="fa fa-arrows text-gray-400"></i>
+            </div>
+            <div class="draggable bg-white p-2 rounded border border-gray-200 hover:border-module flex items-center justify-between shadow-sm cursor-grab" draggable="true" data-type="detect_installed_software">
+                <span><i class="fa fa-check-square-o text-green-500 mr-2"></i>检测已安装软件</span>
+                <i class="fa fa-arrows text-gray-400"></i>
+            </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 中间流程区域 -->
+                <div class="lg:col-span-2 bg-white rounded-lg shadow-md p-4 h-full">
+                    <h2 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-200">
+                        <i class="fa fa-sitemap text-primary mr-2"></i>执行流程
+                    </h2>
+                    <div id="flow-container" class="dropzone min-h-[300px] border-2 border-dashed border-gray-300 rounded-lg p-4 mb-4">
+                        <div id="empty-state" class="text-center py-16 text-gray-400">
+                            <i class="fa fa-arrow-left text-3xl mb-4"></i>
+                            <p>从左侧拖拽功能模块到此处构建您的批处理流程</p>
+                        </div>
+                        <div id="steps-container" class="space-y-4 hidden"></div>
+                    </div>
+                    <div class="flex justify-between">
+                        <button id="clear-all" class="text-red-500 hover:text-red-700 flex items-center space-x-1">
+                            <i class="fa fa-trash"></i>
+                            <span>清空所有</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 下方代码预览区域 -->
+            <div class="w-full bg-white rounded-lg shadow-md p-4 mt-6">
+                <h2 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-200">
+                    <i class="fa fa-code text-primary mr-2"></i>代码预览
+                </h2>
+                <div>
+                    <div class="mb-2">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-500">可自由编辑以下代码</span>
+                            <div class="flex space-x-2">
+                                <button id="save-code-btn" class="bg-primary text-white px-4 py-1 rounded-md text-sm hover:bg-primary/90 transition-colors">
+                                    <i class="fa fa-save mr-1"></i>保存编辑
+                                </button>
+                                <button id="copy-code" class="bg-gray-700 text-white px-3 py-1 rounded-md text-sm hover:bg-gray-600 transition-colors">
+                                    <i class="fa fa-copy mr-1"></i>复制代码
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <textarea id="bat-code" class="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto scrollbar-thin scrollbar-thumb-rounded min-h-[300px] w-full font-mono text-sm resize-y focus:outline-none focus:ring-2 focus:ring-primary" spellcheck="false">
+@echo off
+REM 请添加操作步骤
+pause
+</textarea>
+                </div>
+            </div>
+            </div>
+        </main>
+
+        <!-- 页脚 -->
+        <footer class="bg-gray-800 text-gray-300 py-4">
+            <div class="container mx-auto px-4 text-center">
+                <p>© 2025 Bat 文件编辑器 - 使用 HTML, CSS 和 JavaScript 构建</p>
+            </div>
+        </footer>
+    </div>
+
+    <!-- 配置对话框 -->
+    <div id="config-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 transform transition-all">
+            <div class="p-4 border-b border-gray-200 flex justify-between items-center">
+                <h3 id="modal-title" class="text-lg font-semibold text-gray-800">配置操作</h3>
+                <button id="close-modal" class="text-gray-400 hover:text-gray-600">
+                    <i class="fa fa-times"></i>
+                </button>
+            </div>
+            <div class="p-4">
+                <form id="config-form">
+                    <div id="form-fields"></div>
+                </form>
+            </div>
+            <div class="p-4 border-t border-gray-200 flex justify-end space-x-3">
+                <button id="cancel-config" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+                    取消
+                </button>
+                <button id="save-config" class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90">
+                    保存
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 删除确认对话框 -->
+    <div id="delete-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+            <div class="p-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-800">确认删除</h3>
+            </div>
+            <div class="p-4">
+                <p class="text-gray-700">确定要删除此操作步骤吗？此操作不可撤销。</p>
+            </div>
+            <div class="p-4 border-t border-gray-200 flex justify-end space-x-3">
+                <button id="cancel-delete" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+                    取消
+                </button>
+                <button id="confirm-delete" class="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600">
+                    删除
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 定义各模块的配置字段 - 带有详细的中文注释和常用属性选项
+        const moduleFields = {
+            // 新增模块1: 复制文件夹并改名
+            copy_folder_rename: [
+                { name: 'source', label: '源文件夹路径', type: 'text', placeholder: 'C:\\源文件夹\\', required: true, description: '要复制的源文件夹完整路径' },
+                { name: 'destination', label: '目标文件夹路径', type: 'text', placeholder: 'D:\\新文件夹名\\', required: true, description: '复制到的目标位置和新名称' },
+                { 
+                    name: 'options', 
+                    label: '复制选项', 
+                    type: 'checkbox', 
+                    description: '可多选的文件夹复制命令选项',
+                    options: [
+                        { value: '/E', label: '复制所有子文件夹和文件（包含空文件夹）' },
+                        { value: '/V', label: '验证复制的文件是否正确' },
+                        { value: '/Y', label: '覆盖现有文件不提示' },
+                        { value: '/I', label: '如果目标不存在，假设是目录' },
+                        { value: '/H', label: '复制隐藏和系统文件' },
+                        { value: '/Q', label: '安静模式，不显示文件列表' }
+                    ]
+                }
+            ],
+            // 新增模块2: 复制文件并改名
+            copy_file_rename: [
+                { name: 'source', label: '源文件路径', type: 'text', placeholder: 'C:\\源文件路径\\文件.txt', required: true, description: '要复制的源文件完整路径' },
+                { name: 'destination', label: '目标文件路径', type: 'text', placeholder: 'D:\\目标路径\\新文件名.txt', required: true, description: '复制到的目标位置和新文件名' },
+                { 
+                    name: 'options', 
+                    label: '复制选项', 
+                    type: 'checkbox', 
+                    description: '可多选的复制命令选项',
+                    options: [
+                        { value: '/V', label: '验证复制的文件是否正确' },
+                        { value: '/Y', label: '覆盖现有文件不提示' },
+                        { value: '/A', label: '仅复制ASCII文件' },
+                        { value: '/B', label: '仅复制二进制文件' }
+                    ]
+                }
+            ],
+            // 新增模块3: 暂停运行x秒
+            pause_seconds: [
+                { name: 'seconds', label: '暂停秒数', type: 'text', placeholder: '10', required: true, description: '程序暂停运行的秒数' }
+            ],
+            // 新增模块4: 修改ini配置
+            modify_ini: [
+                { name: 'ini_path', label: 'INI文件路径', type: 'text', placeholder: 'C:\\配置文件.ini', required: true, description: '要修改的INI文件完整路径' },
+                { name: 'section', label: '配置节', type: 'text', placeholder: 'Settings', required: true, description: 'INI文件中的配置节名称' },
+                { name: 'key', label: '配置键', type: 'text', placeholder: 'Username', required: true, description: '要修改的配置键名' },
+                { name: 'value', label: '配置值', type: 'text', placeholder: 'admin', required: true, description: '要设置的新配置值' }
+            ],
+            // 新增模块5: 从源INI文件复制配置并修改到目标INI文件
+            copy_modify_ini: [
+                { name: 'source_ini', label: '源INI文件路径', type: 'text', placeholder: 'C:\\源配置.ini', required: true, description: '要读取配置的源INI文件完整路径' },
+                { name: 'source_section', label: '源配置节', type: 'text', placeholder: 'Settings', required: true, description: '源INI文件中要读取的配置节名称' },
+                { name: 'source_key', label: '源配置键', type: 'text', placeholder: 'Username', required: true, description: '源INI文件中要读取的配置键名' },
+                { name: 'target_ini', label: '目标INI文件路径', type: 'text', placeholder: 'D:\\目标配置.ini', required: true, description: '要修改的目标INI文件完整路径（不存在则创建）' },
+                { name: 'target_section', label: '目标配置节', type: 'text', placeholder: 'Settings', required: true, description: '目标INI文件中要写入的配置节名称' },
+                { name: 'target_key', label: '目标配置键（可选）', type: 'text', placeholder: 'Username', description: '目标INI文件中要写入的配置键名，如果留空则使用源配置键名' }
+            ],
+            // 新增模块6: 复制并替换 - 复制指定文件夹下所有文件到指定文件夹并替换
+            copy_folder_replace: [
+                { name: 'source_folder', label: '源文件夹路径', type: 'text', placeholder: 'C:\\源文件夹\\', required: true, description: '要复制文件的源文件夹完整路径，此模块将复制该文件夹内的所有文件' },
+                { name: 'target_folder', label: '目标文件夹路径', type: 'text', placeholder: 'D:\\目标文件夹\\', required: true, description: '文件复制到的目标文件夹完整路径，源文件夹内的所有文件将被复制到这里并替换现有文件' },
+                { 
+                    name: 'options', 
+                    label: '复制选项', 
+                    type: 'checkbox', 
+                    description: '可多选的复制命令选项',
+                    options: [
+                        { value: '/E', label: '复制所有子文件夹和文件（包含空文件夹）' },
+                        { value: '/V', label: '验证复制的文件是否正确' },
+                        { value: '/Y', label: '覆盖现有文件不提示' },
+                        { value: '/I', label: '如果目标不存在，假设是目录' },
+                        { value: '/H', label: '复制隐藏和系统文件' },
+                        { value: '/Q', label: '安静模式，不显示文件列表' }
+                    ]
+                }
+            ],
+            // 新增模块7: 注册dll和ocx文件
+            register_dll_ocx: [
+                { name: 'file_path', label: 'DLL/OCX文件路径', type: 'text', placeholder: 'C:\\Windows\\System32\\example.dll', required: true, description: '要注册的DLL或OCX文件的完整路径' },
+                { 
+                    name: 'action', 
+                    label: '操作类型', 
+                    type: 'select', 
+                    description: '选择是注册还是注销DLL/OCX文件',
+                    options: [
+                        { value: 'register', label: '注册' },
+                        { value: 'unregister', label: '注销' }
+                    ],
+                    default: 'register'
+                },
+                { 
+                    name: 'options', 
+                    label: '注册选项', 
+                    type: 'checkbox', 
+                    description: '注册命令的附加选项',
+                    options: [
+                        { value: '/s', label: '静默模式，不显示任何消息框' },
+                        { value: '/u', label: '注销DLL/OCX文件' }
+                    ]
+                }
+            ],
+            // 新增模块8: 调用其他bat文件
+            call_other_bat: [
+                { name: 'bat_path', label: 'BAT文件路径', type: 'text', placeholder: 'C:\\Scripts\\other_script.bat', required: true, description: '要调用的其他批处理文件的完整路径' },
+                { name: 'parameters', label: '传递参数（可选）', type: 'text', placeholder: 'param1 param2', description: '传递给被调用批处理文件的命令行参数，多个参数用空格分隔' },
+                { 
+                    name: 'call_type', 
+                    label: '调用方式', 
+                    type: 'select', 
+                    description: '选择调用批处理文件的方式',
+                    options: [
+                        { value: 'call', label: '使用call命令（等待执行完成）' },
+                        { value: 'start', label: '使用start命令（新开窗口执行）' },
+                        { value: 'direct', label: '直接调用（不返回原脚本）' }
+                    ],
+                    default: 'call'
+                },
+                { 
+                    name: 'start_options', 
+                    label: 'start命令选项', 
+                    type: 'checkbox', 
+                    description: '仅当调用方式为start时生效',
+                    options: [
+                        { value: '/min', label: '最小化窗口' },
+                        { value: '/max', label: '最大化窗口' },
+                        { value: '/wait', label: '等待新窗口程序结束' }
+                    ]
+                }
+            ],
+            // 新增模块9: 关闭软件进程
+            close_process: [
+                { name: 'process_name', label: '进程名称', type: 'text', placeholder: 'notepad.exe', required: true, description: '要关闭的进程的可执行文件名（包含扩展名）' },
+                { 
+                    name: 'kill_type', 
+                    label: '终止方式', 
+                    type: 'select', 
+                    description: '选择终止进程的方式',
+                    options: [
+                        { value: 't', label: '正常终止（/t参数，允许程序清理）' },
+                        { value: 'f', label: '强制终止（/f参数，立即终止）' },
+                        { value: 'tf', label: '强制终止树（/t /f参数，终止进程及其子进程）' }
+                    ],
+                    default: 't'
+                },
+                { 
+                    name: 'multiple', 
+                    label: '多进程处理', 
+                    type: 'checkbox', 
+                    description: '处理同名的多个进程实例',
+                    options: [{ value: 'true', label: '终止所有同名进程' }]
+                }
+            ],
+            // 新增模块10: 连接映射盘
+            connect_network_drive: [
+                { name: 'drive_letter', label: '映射盘符', type: 'text', placeholder: 'Z:', required: true, description: '要映射的盘符（包含冒号，如Z:）' },
+                { name: 'network_path', label: '网络路径', type: 'text', placeholder: '\\192.168.1.100\share', required: true, description: '要连接的网络共享路径（格式为\\IP\共享名）' },
+                { name: 'username', label: '用户名（可选）', type: 'text', placeholder: 'user1', required: false, description: '访问共享的用户名，留空表示使用当前用户身份' },
+                { name: 'password', label: '密码（可选）', type: 'text', placeholder: 'password', required: false, description: '访问共享的密码，用户名留空时密码也必须留空' },
+                { 
+                    name: 'persistent', 
+                    label: '持久映射', 
+                    type: 'checkbox', 
+                    description: '设置映射是否在重启后保持',
+                    options: [{ value: 'true', label: '重启后保持映射' }]
+                },
+                { 
+                    name: 'force_disconnect', 
+                    label: '强制断开', 
+                    type: 'checkbox', 
+                    description: '强制断开已有映射',
+                    options: [{ value: 'true', label: '强制断开已存在的相同盘符映射' }]
+                }
+            ],
+            // 新增模块11: 启动黑窗口软件
+            start_console_app: [
+                { name: 'app_path', label: '程序路径', type: 'text', placeholder: 'C:\Tools\blackwindow.exe', required: true, description: '要启动的黑窗口程序的完整路径' },
+                { name: 'app_dir', label: '工作目录', type: 'text', placeholder: 'C:\Tools', required: true, description: '程序的工作目录（默认与程序路径相同）' },
+                { name: 'show_message', label: '显示消息', type: 'checkbox', description: '是否在启动前显示提示消息', options: [{ value: 'true', label: '显示启动提示消息' }] },
+                { name: 'pause_after', label: '执行后暂停', type: 'checkbox', description: '程序执行完毕后是否暂停保留窗口', options: [{ value: 'true', label: '程序执行完毕后暂停' }] }
+            ],
+            // 新增模块12: 网络测试
+            network_ping: [
+                { name: 'target_ip', label: '目标IP地址', type: 'text', placeholder: '192.168.1.1', required: true, description: '要ping测试的IP地址或域名' },
+                { name: 'ping_count', label: 'ping次数', type: 'text', placeholder: '4', required: false, description: '指定ping的次数，留空表示无限ping' },
+                { name: 'packet_size', label: '数据包大小', type: 'text', placeholder: '32', required: false, description: '指定发送的数据包大小（字节）' },
+                { name: 'timeout', label: '超时时间', type: 'text', placeholder: '1000', required: false, description: '指定等待每个回复的超时时间（毫秒）' },
+                { name: 'continuous', label: '持续ping', type: 'checkbox', description: '持续ping目标直到手动停止', options: [{ value: 'true', label: '启用持续ping模式' }] },
+                { name: 'show_details', label: '显示详细信息', type: 'checkbox', description: '显示更详细的ping统计信息', options: [{ value: 'true', label: '显示详细统计' }] },
+                { name: 'pause_after', label: '执行后暂停', type: 'checkbox', description: '测试完成后是否暂停保留窗口', options: [{ value: 'true', label: '测试完成后暂停' }] }
+            ],
+            // 新增模块13: 定时关机或多久后关机
+            schedule_shutdown: [
+                { 
+                    name: 'shutdown_type', 
+                    label: '关机类型', 
+                    type: 'select', 
+                    description: '选择关机的类型',
+                    options: [
+                        { value: 'countdown', label: '倒计时关机' },
+                        { value: 'scheduled', label: '定时关机' }
+                    ],
+                    default: 'countdown'
+                },
+                { name: 'minutes', label: '倒计时分钟数', type: 'text', placeholder: '60', required: false, description: '多少分钟后关机（倒计时模式下必填）' },
+                { name: 'hour', label: '定时小时', type: 'text', placeholder: '23', required: false, description: '定时关机的小时（24小时制，定时模式下必填）' },
+                { name: 'minute', label: '定时分钟', type: 'text', placeholder: '30', required: false, description: '定时关机的分钟（定时模式下必填）' },
+                { 
+                    name: 'action', 
+                    label: '执行动作', 
+                    type: 'select', 
+                    description: '选择要执行的动作',
+                    options: [
+                        { value: 'shutdown', label: '关机' },
+                        { value: 'restart', label: '重启' },
+                        { value: 'hibernate', label: '休眠' },
+                        { value: 'logoff', label: '注销' }
+                    ],
+                    default: 'shutdown'
+                },
+                { name: 'message', label: '提示消息', type: 'text', placeholder: '系统将在指定时间关机', required: false, description: '关机前显示的提示消息' },
+                { name: 'show_command', label: '显示命令', type: 'checkbox', description: '是否显示执行的shutdown命令', options: [{ value: 'true', label: '显示执行的命令' }] },
+                { name: 'create_cancel', label: '创建取消脚本', type: 'checkbox', description: '创建一个用于取消关机的批处理文件', options: [{ value: 'true', label: '创建取消关机脚本' }] }
+            ],
+            // 新增模块14: 修改字体颜色
+            text_color: [
+                { 
+                    name: 'text_color', 
+                    label: '文本颜色', 
+                    type: 'select', 
+                    description: '选择文本颜色',
+                    options: [
+                        { value: '0', label: '黑色' },
+                        { value: '1', label: '蓝色' },
+                        { value: '2', label: '绿色' },
+                        { value: '3', label: '湖蓝色' },
+                        { value: '4', label: '红色' },
+                        { value: '5', label: '紫色' },
+                        { value: '6', label: '黄色' },
+                        { value: '7', label: '白色' },
+                        { value: '8', label: '灰色' },
+                        { value: '9', label: '淡蓝色' },
+                        { value: 'A', label: '淡绿色' },
+                        { value: 'B', label: '淡浅绿色' },
+                        { value: 'C', label: '淡红色' },
+                        { value: 'D', label: '淡紫色' },
+                        { value: 'E', label: '淡黄色' },
+                        { value: 'F', label: '亮白色' }
+                    ],
+                    default: 'F'
+                },
+                { 
+                    name: 'bg_color', 
+                    label: '背景颜色', 
+                    type: 'select', 
+                    description: '选择背景颜色',
+                    options: [
+                        { value: '', label: '默认背景' },
+                        { value: '0', label: '黑色' },
+                        { value: '1', label: '蓝色' },
+                        { value: '2', label: '绿色' },
+                        { value: '3', label: '湖蓝色' },
+                        { value: '4', label: '红色' },
+                        { value: '5', label: '紫色' },
+                        { value: '6', label: '黄色' },
+                        { value: '7', label: '白色' },
+                        { value: '8', label: '灰色' },
+                        { value: '9', label: '淡蓝色' },
+                        { value: 'A', label: '淡绿色' },
+                        { value: 'B', label: '淡浅绿色' },
+                        { value: 'C', label: '淡红色' },
+                        { value: 'D', label: '淡紫色' },
+                        { value: 'E', label: '淡黄色' },
+                        { value: 'F', label: '亮白色' }
+                    ],
+                    default: ''
+                },
+                { name: 'apply_to_text', label: '应用于特定文本', type: 'checkbox', description: '是否只对指定文本应用颜色，否则全局设置', options: [{ value: 'true', label: '应用于特定文本' }] },
+                { name: 'target_text', label: '目标文本', type: 'text', placeholder: '这是一段彩色文本', required: false, description: '要应用颜色的文本内容（选择应用于特定文本时必填）' },
+                { name: 'reset_after', label: '应用后重置', type: 'checkbox', description: '对特定文本应用颜色后是否重置为默认颜色', options: [{ value: 'true', label: '应用后重置颜色' }] },
+                { name: 'save_default', label: '保存为默认颜色', type: 'checkbox', description: '将当前设置保存为控制台默认颜色', options: [{ value: 'true', label: '保存为默认颜色' }] }
+            ],
+            // 新增模块15: IF判断
+            if_condition: [
+                { 
+                    name: 'condition_type', 
+                    label: '条件类型', 
+                    type: 'select', 
+                    description: '选择判断的条件类型',
+                    options: [
+                        { value: 'exist', label: '文件/文件夹存在' },
+                        { value: 'not_exist', label: '文件/文件夹不存在' },
+                        { value: 'equal', label: '字符串相等' },
+                        { value: 'not_equal', label: '字符串不相等' },
+                        { value: 'greater', label: '数值大于' },
+                        { value: 'less', label: '数值小于' },
+                        { value: 'greater_equal', label: '数值大于等于' },
+                        { value: 'less_equal', label: '数值小于等于' }
+                    ],
+                    default: 'exist'
+                },
+                { name: 'path_or_value1', label: '文件路径/值1', type: 'text', placeholder: 'C:\文件.txt 或 变量名', required: true, description: '要判断的文件路径或第一个比较值' },
+                { name: 'value2', label: '值2', type: 'text', placeholder: '比较值', required: false, description: '第二个比较值（用于字符串/数值比较）' },
+                { name: 'true_command', label: '条件成立执行', type: 'textarea', placeholder: 'echo 条件成立', required: true, description: '条件成立时要执行的命令' },
+                { name: 'use_else', label: '使用ELSE分支', type: 'checkbox', description: '是否添加条件不成立时的执行分支', options: [{ value: 'true', label: '添加ELSE分支' }] },
+                { name: 'false_command', label: '条件不成立执行', type: 'textarea', placeholder: 'echo 条件不成立', required: false, description: '条件不成立时要执行的命令（使用ELSE分支时必填）' },
+                { name: 'set_variable', label: '设置结果变量', type: 'checkbox', description: '是否根据判断结果设置变量', options: [{ value: 'true', label: '设置结果变量' }] },
+                { name: 'var_name', label: '变量名', type: 'text', placeholder: 'result', required: false, description: '存储判断结果的变量名（设置结果变量时必填）' }
+            ],
+            // 新增模块16: 用户输入
+            user_input: [
+                { name: 'prompt_text', label: '提示文本', type: 'text', placeholder: '请输入您的选择:', required: true, description: '显示给用户的提示信息' },
+                { name: 'var_name', label: '变量名', type: 'text', placeholder: 'user_choice', required: true, description: '存储用户输入的变量名' },
+                { name: 'default_value', label: '默认值', type: 'text', placeholder: '默认选项', required: false, description: '用户直接按回车时的默认值' },
+                { name: 'validation', label: '输入验证', type: 'select', description: '选择输入验证类型', options: [{ value: '', label: '无验证' }, { value: 'number', label: '必须为数字' }, { value: 'range', label: '数字范围' }, { value: 'options', label: '选项列表' }], default: '' },
+                { name: 'min_value', label: '最小值', type: 'text', placeholder: '0', required: false, description: '数字范围验证的最小值' },
+                { name: 'max_value', label: '最大值', type: 'text', placeholder: '100', required: false, description: '数字范围验证的最大值' },
+                { name: 'allowed_options', label: '允许的选项', type: 'text', placeholder: 'Y,N,Yes,No', required: false, description: '允许的选项列表，用逗号分隔' },
+                { name: 'retry_prompt', label: '重试提示', type: 'text', placeholder: '输入无效，请重试:', required: false, description: '输入验证失败时的提示信息' },
+                { name: 'hide_input', label: '隐藏输入', type: 'checkbox', description: '是否隐藏用户输入（用于密码等敏感信息）', options: [{ value: 'true', label: '隐藏输入内容' }] }
+            ],
+            // 新增模块17: 检测控制面板已安装软件
+            detect_installed_software: [
+                { name: 'software_name', label: '软件名称', type: 'text', placeholder: 'Microsoft Office', required: true, description: '要检测的软件名称（可以是部分名称）' },
+                { 
+                    name: 'search_method', 
+                    label: '搜索方式', 
+                    type: 'select', 
+                    description: '选择软件检测的方式',
+                    options: [
+                        { value: 'registry', label: '注册表检测（推荐）' },
+                        { value: 'wmic', label: 'WMIC命令检测' },
+                        { value: 'both', label: '两种方式结合' }
+                    ],
+                    default: 'registry'
+                },
+                { 
+                    name: 'match_type', 
+                    label: '匹配类型', 
+                    type: 'select', 
+                    description: '选择名称匹配的方式',
+                    options: [
+                        { value: 'contains', label: '包含指定文本' },
+                        { value: 'exact', label: '完全匹配' }
+                    ],
+                    default: 'contains'
+                },
+                { name: 'check_version', label: '检查版本', type: 'checkbox', description: '是否检测并显示软件版本信息', options: [{ value: 'true', label: '检测版本' }] },
+                { name: 'output_settings', label: '输出设置', type: 'select', description: '选择结果输出方式', options: [{ value: '', label: '仅显示结果' }, { value: 'file', label: '输出到文件' }, { value: 'variable', label: '设置为变量' }], default: '' },
+                { name: 'output_file', label: '输出文件', type: 'text', placeholder: '%TEMP%\software.txt', required: false, description: '检测结果输出文件路径' },
+                { name: 'var_name', label: '变量名', type: 'text', placeholder: 'software_installed', required: false, description: '存储检测结果的变量名（值为Y或N）' }
+            ],
+            // 新增模块12: 网络测试
+            network_ping: [
+                { name: 'target_ip', label: '目标IP地址', type: 'text', placeholder: '192.168.1.1', required: true, description: '要ping测试的IP地址或域名' },
+                { name: 'ping_count', label: 'ping次数', type: 'text', placeholder: '4', required: false, description: '指定ping的次数，留空表示无限ping' },
+                { name: 'packet_size', label: '数据包大小', type: 'text', placeholder: '32', required: false, description: '指定发送的数据包大小（字节）' },
+                { name: 'timeout', label: '超时时间', type: 'text', placeholder: '1000', required: false, description: '指定等待每个回复的超时时间（毫秒）' },
+                { name: 'continuous', label: '持续ping', type: 'checkbox', description: '持续ping目标直到手动停止', options: [{ value: 'true', label: '启用持续ping模式' }] },
+                { name: 'show_details', label: '显示详细信息', type: 'checkbox', description: '显示更详细的ping统计信息', options: [{ value: 'true', label: '显示详细统计' }] },
+                { name: 'pause_after', label: '执行后暂停', type: 'checkbox', description: '测试完成后是否暂停保留窗口', options: [{ value: 'true', label: '测试完成后暂停' }] }
+            ],
+            copy_file: [
+                { name: 'source', label: '源文件路径', type: 'text', placeholder: 'C:\\源文件路径\\文件.txt', required: true, description: '要复制的源文件完整路径' },
+                { name: 'destination', label: '目标路径', type: 'text', placeholder: 'D:\\目标路径\\', required: true, description: '复制到的目标位置' },
+                { 
+                    name: 'options', 
+                    label: '复制选项', 
+                    type: 'checkbox', 
+                    description: '可多选的复制命令选项',
+                    options: [
+                        { value: '/V', label: '验证复制的文件是否正确' },
+                        { value: '/Y', label: '覆盖现有文件不提示' },
+                        { value: '/-Y', label: '覆盖现有文件时提示' },
+                        { value: '/A', label: '仅复制ASCII文件' },
+                        { value: '/B', label: '仅复制二进制文件' }
+                    ]
+                }
+            ],
+            move_file: [
+                { name: 'source', label: '源文件路径', type: 'text', placeholder: 'C:\\源文件路径\\文件.txt', required: true, description: '要移动的源文件完整路径' },
+                { name: 'destination', label: '目标路径', type: 'text', placeholder: 'D:\\目标路径\\', required: true, description: '移动到的目标位置' },
+                { 
+                    name: 'options', 
+                    label: '移动选项', 
+                    type: 'checkbox', 
+                    description: '可多选的移动命令选项',
+                    options: [
+                        { value: '/Y', label: '覆盖现有文件不提示' },
+                        { value: '/-Y', label: '覆盖现有文件时提示' }
+                    ]
+                }
+            ],
+            delete_file: [
+                { name: 'file_path', label: '文件路径', type: 'text', placeholder: 'C:\\要删除的文件.txt', required: true, description: '要删除的文件完整路径' },
+                { 
+                    name: 'options', 
+                    label: '删除选项', 
+                    type: 'checkbox', 
+                    description: '可多选的删除命令选项',
+                    options: [
+                        { value: '/F', label: '强制删除只读文件' },
+                        { value: '/Q', label: '安静模式，不显示确认信息' },
+                        { value: '/A', label: '根据属性选择要删除的文件' }
+                    ]
+                }
+            ],
+            create_file: [
+                { name: 'file_path', label: '文件路径', type: 'text', placeholder: 'C:\\要创建的文件.txt', required: true, description: '要创建的文件完整路径' },
+                { name: 'content', label: '文件内容', type: 'textarea', placeholder: '文件内容...', rows: 3, description: '文件中要写入的文本内容' },
+                { 
+                    name: 'encoding', 
+                    label: '编码格式', 
+                    type: 'select', 
+                    description: '选择文件的字符编码格式',
+                    options: [
+                        { value: 'default', label: '默认编码' },
+                        { value: 'utf8', label: 'UTF-8编码' },
+                        { value: 'ansi', label: 'ANSI编码' }
+                    ]
+                }
+            ],
+            copy_folder: [
+                { name: 'source', label: '源文件夹路径', type: 'text', placeholder: 'C:\\源文件夹\\', required: true, description: '要复制的源文件夹完整路径' },
+                { name: 'destination', label: '目标路径', type: 'text', placeholder: 'D:\\目标文件夹\\', required: true, description: '复制到的目标位置' },
+                { 
+                    name: 'options', 
+                    label: '复制选项', 
+                    type: 'checkbox', 
+                    description: '可多选的文件夹复制命令选项',
+                    options: [
+                        { value: '/S', label: '复制所有子文件夹和文件（不含空文件夹）' },
+                        { value: '/E', label: '复制所有子文件夹和文件（包含空文件夹）' },
+                        { value: '/V', label: '验证复制的文件是否正确' },
+                        { value: '/Y', label: '覆盖现有文件不提示' },
+                        { value: '/I', label: '如果目标不存在，假设是目录' },
+                        { value: '/H', label: '复制隐藏和系统文件' },
+                        { value: '/Q', label: '安静模式，不显示文件列表' }
+                    ]
+                }
+            ],
+            move_folder: [
+                { name: 'source', label: '源文件夹路径', type: 'text', placeholder: 'C:\\源文件夹\\', required: true, description: '要移动的源文件夹完整路径' },
+                { name: 'destination', label: '目标路径', type: 'text', placeholder: 'D:\\目标文件夹\\', required: true, description: '移动到的目标位置' },
+                { 
+                    name: 'options', 
+                    label: '移动选项', 
+                    type: 'checkbox', 
+                    description: '可多选的文件夹移动命令选项',
+                    options: [
+                        { value: '/Y', label: '覆盖现有文件不提示' },
+                        { value: '/-Y', label: '覆盖现有文件时提示' }
+                    ]
+                }
+            ],
+            delete_folder: [
+                { name: 'folder_path', label: '文件夹路径', type: 'text', placeholder: 'C:\\要删除的文件夹\\', required: true, description: '要删除的文件夹完整路径' },
+                { 
+                    name: 'options', 
+                    label: '删除选项', 
+                    type: 'checkbox', 
+                    description: '可多选的文件夹删除命令选项',
+                    options: [
+                        { value: '/S', label: '删除文件夹及其所有内容' },
+                        { value: '/Q', label: '安静模式，不显示确认信息' }
+                    ]
+                }
+            ],
+            create_folder: [
+                { name: 'folder_path', label: '文件夹路径', type: 'text', placeholder: 'C:\\要创建的文件夹\\', required: true, description: '要创建的文件夹完整路径' },
+                { 
+                    name: 'create_parent', 
+                    label: '创建父文件夹', 
+                    type: 'checkbox', 
+                    description: '如果父文件夹不存在，自动创建所有必需的父文件夹',
+                    options: [{ value: 'true', label: '自动创建父文件夹' }]
+                }
+            ],
+            echo: [
+                { name: 'message', label: '显示文本', type: 'text', placeholder: 'Hello, World!', required: true, description: '要在命令行中显示的文本内容' },
+                { 
+                    name: 'options', 
+                    label: '显示选项', 
+                    type: 'radio', 
+                    description: '选择文本的显示方式',
+                    options: [
+                        { value: 'normal', label: '正常显示（带换行）' },
+                        { value: 'no_newline', label: '不添加换行符' },
+                        { value: 'empty_line', label: '输出空行' }
+                    ],
+                    default: 'normal'
+                }
+            ],
+            pause: [
+                { 
+                    name: 'custom_message', 
+                    label: '自定义提示信息', 
+                    type: 'text', 
+                    placeholder: '按任意键继续...', 
+                    description: '自定义暂停时显示的提示文本'
+                }
+            ],
+            start: [
+                { name: 'program_path', label: '程序路径', type: 'text', placeholder: 'C:\\Program Files\\应用程序\\程序.exe', required: true, description: '要启动的程序完整路径' },
+                { name: 'arguments', label: '参数（可选）', type: 'text', placeholder: '/arg1 /arg2', description: '传递给程序的命令行参数' },
+                { 
+                    name: 'options', 
+                    label: '启动选项', 
+                    type: 'checkbox', 
+                    description: '可多选的启动命令选项',
+                    options: [
+                        { value: '/MIN', label: '以最小化窗口启动' },
+                        { value: '/MAX', label: '以最大化窗口启动' },
+                        { value: '/WAIT', label: '等待程序退出后再继续' },
+                        { value: '/SEPARATE', label: '在单独的内存空间中启动16位程序' }
+                    ]
+                },
+                { 
+                    name: 'working_dir', 
+                    label: '工作目录（可选）', 
+                    type: 'text', 
+                    placeholder: 'C:\\Program Files\\应用程序\\', 
+                    description: '程序的工作目录'
+                }
+            ],
+            // 新增模块8: 调用其他bat文件
+            call_other_bat: [
+                { name: 'bat_path', label: 'BAT文件路径', type: 'text', placeholder: 'C:\\Scripts\\other_script.bat', required: true, description: '要调用的其他批处理文件的完整路径' },
+                { name: 'parameters', label: '传递参数（可选）', type: 'text', placeholder: 'param1 param2', description: '传递给被调用批处理文件的命令行参数，多个参数用空格分隔' },
+                { 
+                    name: 'call_type', 
+                    label: '调用方式', 
+                    type: 'select', 
+                    description: '选择调用批处理文件的方式',
+                    options: [
+                        { value: 'call', label: '使用call命令（等待执行完成）' },
+                        { value: 'start', label: '使用start命令（新开窗口执行）' },
+                        { value: 'direct', label: '直接调用（不返回原脚本）' }
+                    ],
+                    default: 'call'
+                },
+                { 
+                    name: 'start_options', 
+                    label: 'start命令选项', 
+                    type: 'checkbox', 
+                    description: '仅当调用方式为start时生效',
+                    options: [
+                        { value: '/min', label: '最小化窗口' },
+                        { value: '/max', label: '最大化窗口' },
+                        { value: '/wait', label: '等待新窗口程序结束' }
+                    ]
+                }
+            ]
+        };
+
+        // 定义各模块的图标和标题
+        const moduleInfo = {
+            copy_file: { icon: 'fa-file-text-o text-module', title: '复制文件' },
+            move_file: { icon: 'fa-file-o text-module', title: '移动文件' },
+            delete_file: { icon: 'fa-trash text-red-500', title: '删除文件' },
+            create_file: { icon: 'fa-file-o text-green-500', title: '创建文件' },
+            copy_folder: { icon: 'fa-folder text-module', title: '复制文件夹' },
+            move_folder: { icon: 'fa-folder-open text-module', title: '移动文件夹' },
+            delete_folder: { icon: 'fa-trash text-red-500', title: '删除文件夹' },
+            create_folder: { icon: 'fa-folder text-green-500', title: '创建文件夹' },
+            echo: { icon: 'fa-comment text-blue-500', title: '显示文本' },
+            pause: { icon: 'fa-pause text-yellow-500', title: '暂停' },
+            start: { icon: 'fa-play text-green-500', title: '启动程序' },
+            // 新增模块的图标和标题
+            copy_folder_rename: { icon: 'fa-copy text-module', title: '复制文件夹并改名' },
+            copy_file_rename: { icon: 'fa-copy text-module', title: '复制文件并改名' },
+            pause_seconds: { icon: 'fa-clock-o text-yellow-500', title: '暂停运行x秒' },
+            modify_ini: { icon: 'fa-cog text-blue-500', title: '修改ini配置' },
+            copy_modify_ini: { icon: 'fa-copy text-blue-500', title: '复制ini配置并修改' },
+            copy_folder_replace: { icon: 'fa-copy text-green-500', title: '复制并替换' },
+            register_dll_ocx: { icon: 'fa-plug text-purple-500', title: '注册dll和ocx' },
+            call_other_bat: { icon: 'fa-file-text-o text-orange-500', title: '调用其他bat' },
+            close_process: { icon: 'fa-power-off text-red-500', title: '关闭软件进程' },
+            connect_network_drive: { icon: 'fa-hdd-o text-blue-500', title: '连接映射盘' },
+            connect_network_drive: { icon: 'fa-hdd-o text-blue-500', title: '连接映射盘' },
+            start_console_app: { icon: 'fa-terminal text-green-500', title: '启动黑窗口软件' },
+            network_ping: { icon: 'fa-wifi text-cyan-500', title: '网络测试' },
+            schedule_shutdown: { icon: 'fa-power-off text-orange-500', title: '定时关机' },
+            text_color: { icon: 'fa-paint-brush text-purple-500', title: '修改字体颜色' },
+            if_condition: { icon: 'fa-code-fork text-blue-500', title: 'IF判断' },
+            user_input: { icon: 'fa-terminal text-red-500', title: '用户输入' },
+            detect_installed_software: { icon: 'fa-check-square-o text-green-500', title: '检测已安装软件' }
+        };
+
+        // 全局变量
+        let currentStepId = 0;
+        let currentEditingStepId = null;
+        let currentEditingModule = null;
+        let steps = [];
+
+        // 初始化拖拽功能和点击添加功能
+        function initDragAndDrop() {
+            const draggables = document.querySelectorAll('.draggable');
+            const dropzone = document.getElementById('flow-container');
+            const stepsContainer = document.getElementById('steps-container');
+
+            // 为模块添加点击事件
+            draggables.forEach(draggable => {
+                draggable.addEventListener('click', (e) => {
+                    // 防止点击拖动中的元素时触发
+                    if (!draggable.classList.contains('opacity-50')) {
+                        const moduleType = draggable.dataset.type;
+                        if (moduleType) {
+                            openConfigModal(moduleType);
+                        }
+                    }
+                });
+
+                draggable.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.setData('text/plain', draggable.dataset.type);
+                    draggable.classList.add('opacity-50');
+                });
+
+                draggable.addEventListener('dragend', () => {
+                    draggable.classList.remove('opacity-50');
+                });
+            });
+
+            dropzone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropzone.classList.add('highlight');
+            });
+
+            dropzone.addEventListener('dragleave', () => {
+                dropzone.classList.remove('highlight');
+            });
+
+            dropzone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropzone.classList.remove('highlight');
+                
+                const moduleType = e.dataTransfer.getData('text/plain');
+                if (moduleType) {
+                    // 显示配置对话框
+                    openConfigModal(moduleType);
+                }
+            });
+        }
+
+        // 打开配置对话框 - 支持多种表单控件类型
+        function openConfigModal(moduleType) {
+            const modal = document.getElementById('config-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const formFields = document.getElementById('form-fields');
+            
+            // 设置模态框标题
+            modalTitle.textContent = `配置 ${moduleInfo[moduleType].title}`;
+            
+            // 清空并重新创建表单字段
+            formFields.innerHTML = '';
+            
+            // 添加滚动容器
+            const scrollContainer = document.createElement('div');
+            scrollContainer.className = 'config-scroll-container max-h-[50vh] overflow-y-auto pr-3';
+            formFields.appendChild(scrollContainer);
+            
+            const fields = moduleFields[moduleType];
+            
+            if (fields && fields.length > 0) {
+                fields.forEach(field => {
+                    const fieldContainer = document.createElement('div');
+                    fieldContainer.className = 'mb-4';
+                    
+                    // 创建标签
+                    const label = document.createElement('label');
+                    label.htmlFor = field.name;
+                    label.className = 'block text-sm font-medium text-gray-700 mb-1';
+                    label.textContent = field.label + (field.required ? ' <span class="text-red-500">*</span>' : '');
+                    
+                    // 根据字段类型创建不同的控件
+                    let input;
+                    
+                    if (field.type === 'checkbox' && field.options) {
+                        // 复选框组 - 支持多选
+                        const checkboxContainer = document.createElement('div');
+                        checkboxContainer.className = 'space-y-2 p-2 border border-gray-200 rounded-md';
+                        
+                        field.options.forEach((option, index) => {
+                            const optionLabel = document.createElement('label');
+                            optionLabel.className = 'flex items-center';
+                            
+                            const checkbox = document.createElement('input');
+                            checkbox.type = 'checkbox';
+                            checkbox.name = field.name;
+                            checkbox.value = option.value;
+                            checkbox.className = 'w-4 h-4 text-primary focus:ring-primary border-gray-300 rounded';
+                            
+                            const optionText = document.createElement('span');
+                            optionText.className = 'ml-2 text-sm text-gray-700';
+                            optionText.textContent = option.label;
+                            
+                            optionLabel.appendChild(checkbox);
+                            optionLabel.appendChild(optionText);
+                            checkboxContainer.appendChild(optionLabel);
+                        });
+                        
+                        input = checkboxContainer;
+                    } else if (field.type === 'radio' && field.options) {
+                        // 单选按钮组
+                        const radioContainer = document.createElement('div');
+                        radioContainer.className = 'space-y-2 p-2 border border-gray-200 rounded-md';
+                        
+                        field.options.forEach((option, index) => {
+                            const optionLabel = document.createElement('label');
+                            optionLabel.className = 'flex items-center';
+                            
+                            const radio = document.createElement('input');
+                            radio.type = 'radio';
+                            radio.name = field.name;
+                            radio.value = option.value;
+                            radio.className = 'w-4 h-4 text-primary focus:ring-primary border-gray-300';
+                            if (field.default && option.value === field.default) {
+                                radio.checked = true;
+                            }
+                            
+                            const optionText = document.createElement('span');
+                            optionText.className = 'ml-2 text-sm text-gray-700';
+                            optionText.textContent = option.label;
+                            
+                            optionLabel.appendChild(radio);
+                            optionLabel.appendChild(optionText);
+                            radioContainer.appendChild(optionLabel);
+                        });
+                        
+                        input = radioContainer;
+                    } else if (field.type === 'select' && field.options) {
+                        // 下拉菜单
+                        input = document.createElement('select');
+                        input.id = field.name;
+                        input.name = field.name;
+                        input.className = 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary';
+                        
+                        field.options.forEach(option => {
+                            const optionElement = document.createElement('option');
+                            optionElement.value = option.value;
+                            optionElement.textContent = option.label;
+                            if (field.default && option.value === field.default) {
+                                optionElement.selected = true;
+                            }
+                            input.appendChild(optionElement);
+                        });
+                    } else if (field.type === 'textarea') {
+                        input = document.createElement('textarea');
+                        input.id = field.name;
+                        input.name = field.name;
+                        input.rows = field.rows || 3;
+                        input.className = 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary';
+                        input.placeholder = field.placeholder || '';
+                    } else {
+                        // 普通文本输入
+                        input = document.createElement('input');
+                        input.id = field.name;
+                        input.name = field.name;
+                        input.type = field.type || 'text';
+                        input.className = 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary';
+                        input.placeholder = field.placeholder || '';
+                        if (field.required) {
+                            input.required = true;
+                        }
+                    }
+                    
+                    // 添加字段描述
+                    if (field.description) {
+                        const description = document.createElement('p');
+                        description.className = 'mt-1 text-xs text-gray-500 italic';
+                        description.textContent = field.description;
+                        fieldContainer.appendChild(description);
+                    }
+                    
+                    // 添加标签和输入到容器 - 修复：使用标准DOM操作避免重新创建元素
+                    fieldContainer.appendChild(label);
+                    fieldContainer.appendChild(input);
+                    
+                    scrollContainer.appendChild(fieldContainer);
+                });
+            } else {
+                // 如果没有配置字段，显示提示信息
+                const message = document.createElement('p');
+                message.className = 'text-gray-500 text-center py-2';
+                message.textContent = '此操作不需要额外配置';
+                scrollContainer.appendChild(message);
+            }
+            
+            // 保存当前编辑的模块类型
+            currentEditingStepId = null; // 新建步骤
+            currentEditingModule = moduleType;
+            
+            // 显示模态框
+            modal.classList.remove('hidden');
+            
+            // 初始化输出设置相关逻辑
+            initOutputSettingsLogic();
+        }
+        
+        // 初始化输出设置相关逻辑
+        function initOutputSettingsLogic() {
+            const outputSettingsSelect = document.getElementById('output_settings');
+            if (!outputSettingsSelect) return;
+            
+            // 查找相关的输入框容器
+            const outputFileInput = document.getElementById('output_file');
+            const varNameInput = document.getElementById('var_name');
+            
+            // 获取它们的父容器
+            const outputFileContainer = outputFileInput ? outputFileInput.closest('.mb-4') : null;
+            const varNameContainer = varNameInput ? varNameInput.closest('.mb-4') : null;
+            
+            // 初始隐藏
+            if (outputFileContainer) outputFileContainer.style.display = 'none';
+            if (varNameContainer) varNameContainer.style.display = 'none';
+            
+            // 添加事件监听器
+            outputSettingsSelect.addEventListener('change', function() {
+                const selectedValue = this.value;
+                
+                // 默认隐藏所有相关容器
+                if (outputFileContainer) outputFileContainer.style.display = 'none';
+                if (varNameContainer) varNameContainer.style.display = 'none';
+                
+                // 根据选择显示相应容器
+                if (selectedValue === 'file' && outputFileContainer) {
+                    outputFileContainer.style.display = 'block';
+                } else if (selectedValue === 'variable' && varNameContainer) {
+                    varNameContainer.style.display = 'block';
+                }
+            });
+            
+            // 触发初始change事件以设置正确的显示状态
+            outputSettingsSelect.dispatchEvent(new Event('change'));
+        }
+
+        // 关闭配置对话框
+        function closeConfigModal() {
+            const modal = document.getElementById('config-modal');
+            modal.classList.add('hidden');
+            currentEditingStepId = null;
+            currentEditingModule = null;
+        }
+
+        // 保存配置并添加步骤 - 支持多种表单控件类型
+        function saveConfig() {
+            console.log('开始保存配置...');
+            const moduleType = currentEditingModule;
+            const form = document.getElementById('config-form');
+            
+            // 确保模块类型有效
+            if (!moduleType || !moduleFields[moduleType]) {
+                console.error('无效的模块类型:', moduleType);
+                alert('保存失败：无效的模块类型');
+                return;
+            }
+            
+            // 收集所有表单数据
+            const config = {};
+            const fields = moduleFields[moduleType];
+            let isValid = true;
+            
+            if (fields && fields.length > 0) {
+                fields.forEach(field => {
+                    console.log('处理字段:', field.name, '类型:', field.type);
+                    
+                    // 根据字段类型收集数据
+                    if (field.type === 'checkbox' && field.options) {
+                        // 收集复选框选中的值为数组
+                        const checkboxes = document.querySelectorAll(`input[name="${field.name}"]:checked`);
+                        config[field.name] = Array.from(checkboxes).map(cb => cb.value);
+                        console.log('复选框值:', config[field.name]);
+                    } else if (field.type === 'radio') {
+                        // 收集单选按钮选中的值
+                        const radio = document.querySelector(`input[name="${field.name}"]:checked`);
+                        config[field.name] = radio ? radio.value : (field.default || '');
+                        console.log('单选值:', config[field.name]);
+                    } else if (field.type === 'select') {
+                        // 专门处理select元素
+                        const select = document.getElementById(field.name);
+                        if (select) {
+                            config[field.name] = select.value;
+                            console.log('下拉菜单值:', config[field.name]);
+                        } else {
+                            console.warn('找不到下拉菜单元素:', field.name);
+                        }
+                    } else {
+                        // 收集普通输入（text, textarea等）
+                        const input = document.getElementById(field.name);
+                        if (input) {
+                            config[field.name] = input.value.trim();
+                            console.log('输入字段值:', field.name, '=', config[field.name]);
+                        } else {
+                            console.warn('找不到输入元素:', field.name);
+                            // 如果是必填字段，标记为无效
+                            if (field.required) {
+                                isValid = false;
+                            }
+                        }
+                    }
+                    
+                    // 必填字段验证
+                    if (field.required && field.type !== 'checkbox' && field.type !== 'radio') {
+                        const input = document.getElementById(field.name);
+                        if (input && !input.value.trim()) {
+                            console.warn('必填字段为空:', field.name);
+                            isValid = false;
+                            input.classList.add('border-red-500');
+                            input.addEventListener('input', function removeError() {
+                                this.classList.remove('border-red-500');
+                                this.removeEventListener('input', removeError);
+                            });
+                        }
+                    }
+                });
+            } else {
+                console.log('没有配置字段');
+            }
+            
+            console.log('表单验证结果:', isValid);
+            
+            if (!isValid) {
+                // 显示错误提示
+                const existingAlert = document.querySelector('#config-modal .alert-danger');
+                if (!existingAlert) {
+                    const alert = document.createElement('div');
+                    alert.className = 'alert-danger bg-red-50 text-red-700 p-3 rounded-md mb-3';
+                    alert.textContent = '请填写所有必填字段';
+                    form.parentNode.insertBefore(alert, form);
+                    
+                    // 3秒后移除错误提示
+                    setTimeout(() => {
+                        alert.remove();
+                    }, 3000);
+                }
+                return;
+            }
+            
+            console.log('准备创建/更新步骤，配置数据:', config);
+            
+            // 创建或更新步骤
+            if (currentEditingStepId === null) {
+                // 新建步骤
+                const stepId = ++currentStepId;
+                console.log('创建新步骤，ID:', stepId);
+                addStep(stepId, moduleType, config);
+            } else {
+                // 更新现有步骤
+                console.log('更新步骤，ID:', currentEditingStepId);
+                updateStep(currentEditingStepId, moduleType, config);
+            }
+            
+            // 关闭模态框
+            closeConfigModal();
+            
+            console.log('保存配置完成');
+        }
+
+        // 添加步骤到流程容器 - 改进：确保新步骤添加到末尾，不改变现有顺序
+        function addStep(stepId, moduleType, config) {
+            const emptyState = document.getElementById('empty-state');
+            const stepsContainer = document.getElementById('steps-container');
+            
+            // 隐藏空状态
+            emptyState.classList.add('hidden');
+            stepsContainer.classList.remove('hidden');
+            
+            console.log('添加新步骤，ID:', stepId);
+            
+            // 保存步骤数据 - 直接使用传入的stepId，不修改数组顺序
+            const newStep = {
+                id: stepId,
+                type: moduleType,
+                config: config
+            };
+            
+            // 直接添加到数组末尾
+            steps.push(newStep);
+            
+            // 使用rebuildStepsUI统一处理UI更新 - rebuildStepsUI现在会正确维护顺序
+            rebuildStepsUI();
+            
+            console.log('步骤添加完成，当前步骤数组:', steps);
+        }
+
+        // 更新步骤
+        function updateStep(stepId, moduleType, config) {
+            // 更新步骤数据
+            const stepIndex = steps.findIndex(s => s.id === stepId);
+            if (stepIndex !== -1) {
+                steps[stepIndex] = {
+                    id: stepId,
+                    type: moduleType,
+                    config: config
+                };
+            }
+            
+            // 使用rebuildStepsUI重建UI，确保一致性
+            rebuildStepsUI();
+            
+            // 更新代码预览
+            updateCodePreview();
+        }
+
+        // 更新步骤摘要
+        function updateStepSummary(step, moduleType, config) {
+            const summaryElement = step.querySelector('.config-summary');
+            let summary = '';
+            
+            switch (moduleType) {
+                case 'copy_file':
+                case 'move_file':
+                    summary = `${config.source} → ${config.destination}`;
+                    break;
+                case 'delete_file':
+                    summary = config.file_path;
+                    break;
+                case 'create_file':
+                    summary = config.file_path;
+                    break;
+                case 'copy_folder':
+                case 'move_folder':
+                    summary = `${config.source} → ${config.destination}`;
+                    break;
+                case 'delete_folder':
+                    summary = config.folder_path;
+                    break;
+                case 'create_folder':
+                    summary = config.folder_path;
+                    break;
+                case 'echo':
+                    summary = config.message;
+                    break;
+                case 'pause':
+                    summary = '等待用户按键继续';
+                    break;
+                case 'start':
+                    summary = config.program_path + (config.arguments ? ` ${config.arguments}` : '');
+                    break;
+            }
+            
+            summaryElement.textContent = summary;
+        }
+
+        // 编辑步骤 - 支持多种表单控件类型并修复属性显示问题
+        function editStep(stepId) {
+            // 重置当前编辑状态
+            currentEditingStepId = stepId;
+            
+            // 查找步骤数据
+            const step = steps.find(s => s.id === stepId);
+            if (!step) return;
+            
+            currentEditingModule = step.type;
+            
+            // 打开配置对话框
+            const modal = document.getElementById('config-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const formFields = document.getElementById('form-fields');
+            
+            // 设置模态框标题
+            modalTitle.textContent = `编辑 ${moduleInfo[step.type].title}`;
+            
+            // 清空并重新创建表单字段
+            formFields.innerHTML = '';
+            const fields = moduleFields[step.type];
+            
+            if (fields && fields.length > 0) {
+                fields.forEach(field => {
+                    const fieldContainer = document.createElement('div');
+                    fieldContainer.className = 'mb-4';
+                    
+                    // 创建标签
+                    const label = document.createElement('label');
+                    label.htmlFor = field.name;
+                    label.className = 'block text-sm font-medium text-gray-700 mb-1';
+                    label.innerHTML = field.label + (field.required ? ' <span class="text-red-500">*</span>' : '');
+                    
+                    // 根据字段类型创建不同的控件
+                    let input;
+                    
+                    if (field.type === 'checkbox' && field.options) {
+                        // 复选框组 - 支持多选
+                        const checkboxContainer = document.createElement('div');
+                        checkboxContainer.className = 'space-y-2 p-2 border border-gray-200 rounded-md';
+                        
+                        field.options.forEach((option) => {
+                            const optionLabel = document.createElement('label');
+                            optionLabel.className = 'flex items-center';
+                            
+                            const checkbox = document.createElement('input');
+                            checkbox.type = 'checkbox';
+                            checkbox.name = field.name;
+                            checkbox.value = option.value;
+                            checkbox.className = 'w-4 h-4 text-primary focus:ring-primary border-gray-300 rounded';
+                            
+                            // 安全地检查选中状态
+                            if (step.config && step.config[field.name]) {
+                                if (Array.isArray(step.config[field.name]) && 
+                                    step.config[field.name].includes(option.value)) {
+                                    checkbox.checked = true;
+                                }
+                            }
+                            
+                            const optionText = document.createElement('span');
+                            optionText.className = 'ml-2 text-sm text-gray-700';
+                            optionText.textContent = option.label;
+                            
+                            optionLabel.appendChild(checkbox);
+                            optionLabel.appendChild(optionText);
+                            checkboxContainer.appendChild(optionLabel);
+                        });
+                        
+                        input = checkboxContainer;
+                    } else if (field.type === 'radio' && field.options) {
+                        // 单选按钮组
+                        const radioContainer = document.createElement('div');
+                        radioContainer.className = 'space-y-2 p-2 border border-gray-200 rounded-md';
+                        
+                        field.options.forEach((option) => {
+                            const optionLabel = document.createElement('label');
+                            optionLabel.className = 'flex items-center';
+                            
+                            const radio = document.createElement('input');
+                            radio.type = 'radio';
+                            radio.name = field.name;
+                            radio.value = option.value;
+                            radio.className = 'w-4 h-4 text-primary focus:ring-primary border-gray-300';
+                            
+                            // 安全地设置选中状态
+                            if (step.config && step.config[field.name] === option.value) {
+                                radio.checked = true;
+                            } else if (!step.config || !step.config[field.name]) {
+                                // 如果没有配置且有默认值，设置默认值
+                                if (field.default && option.value === field.default) {
+                                    radio.checked = true;
+                                }
+                            }
+                            
+                            const optionText = document.createElement('span');
+                            optionText.className = 'ml-2 text-sm text-gray-700';
+                            optionText.textContent = option.label;
+                            
+                            optionLabel.appendChild(radio);
+                            optionLabel.appendChild(optionText);
+                            radioContainer.appendChild(optionLabel);
+                        });
+                        
+                        input = radioContainer;
+                    } else if (field.type === 'select' && field.options) {
+                        // 下拉菜单
+                        input = document.createElement('select');
+                        input.id = field.name;
+                        input.name = field.name;
+                        input.className = 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary';
+                        
+                        field.options.forEach(option => {
+                            const optionElement = document.createElement('option');
+                            optionElement.value = option.value;
+                            optionElement.textContent = option.label;
+                            
+                            // 安全地设置选中状态
+                            if (step.config) {
+                                if (step.config[field.name] === option.value || 
+                                    (!step.config[field.name] && field.default === option.value)) {
+                                    optionElement.selected = true;
+                                }
+                            }
+                            input.appendChild(optionElement);
+                        });
+                    } else if (field.type === 'textarea') {
+                        input = document.createElement('textarea');
+                        input.id = field.name;
+                        input.name = field.name;
+                        input.rows = field.rows || 3;
+                        input.className = 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary';
+                        input.placeholder = field.placeholder || '';
+                        // 安全地设置值
+                        input.value = step.config && step.config[field.name] ? step.config[field.name] : '';
+                    } else {
+                        // 普通文本输入
+                        input = document.createElement('input');
+                        input.id = field.name;
+                        input.name = field.name;
+                        input.type = field.type || 'text';
+                        input.className = 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary';
+                        input.placeholder = field.placeholder || '';
+                        // 安全地设置值
+                        input.value = step.config && step.config[field.name] ? step.config[field.name] : '';
+                        if (field.required) {
+                            input.required = true;
+                        }
+                    }
+                    
+                    // 添加字段描述
+                    if (field.description) {
+                        const description = document.createElement('p');
+                        description.className = 'mt-1 text-xs text-gray-500 italic';
+                        description.textContent = field.description;
+                        fieldContainer.appendChild(description);
+                    }
+                    
+                    // 添加标签和输入到容器
+                    fieldContainer.appendChild(label);
+                    fieldContainer.appendChild(input);
+                    formFields.appendChild(fieldContainer);
+                });
+            } else {
+                // 如果没有配置字段，显示提示信息
+                const message = document.createElement('p');
+                message.className = 'text-gray-500 text-center py-2';
+                message.textContent = '此操作不需要额外配置';
+                formFields.appendChild(message);
+            }
+            
+            // 显示模态框
+            modal.classList.remove('hidden');
+        }
+
+        // 删除步骤确认
+        function deleteStepConfirm(stepId) {
+            const deleteModal = document.getElementById('delete-modal');
+            // 保存要删除的步骤ID
+            deleteModal.dataset.stepId = stepId;
+            // 显示删除确认对话框
+            deleteModal.classList.remove('hidden');
+        }
+        
+        // 删除步骤函数 - 采用简单可靠的方法
+        function deleteStep(stepId) {
+            console.log(`删除步骤: ${stepId}`);
+            
+            // 1. 先关闭对话框
+            document.getElementById('delete-modal').classList.add('hidden');
+            
+            // 2. 查找要删除的步骤索引
+            const indexToRemove = steps.findIndex(step => step.id === stepId);
+            if (indexToRemove === -1) {
+                console.error('未找到要删除的步骤');
+                return;
+            }
+            
+            // 3. 从数组中移除
+            steps.splice(indexToRemove, 1);
+            console.log('步骤已从数组中移除');
+            
+            // 4. 重新编号所有步骤的ID
+            steps.forEach((step, index) => {
+                step.id = index + 1;
+            });
+            
+            // 5. 使用rebuildStepsUI重建UI
+            const emptyState = document.getElementById('empty-state');
+            const stepsContainer = document.getElementById('steps-container');
+            
+            if (steps.length > 0) {
+                // 隐藏空状态，显示步骤容器
+                emptyState.classList.add('hidden');
+                stepsContainer.classList.remove('hidden');
+                
+                // 使用统一的UI重建函数
+                rebuildStepsUI();
+            } else {
+                // 显示空状态
+                emptyState.classList.remove('hidden');
+                stepsContainer.classList.add('hidden');
+                
+                // 清空容器
+                stepsContainer.innerHTML = '';
+            }
+            
+            // 6. 更新当前步骤ID计数器
+            currentStepId = steps.length;
+            
+            // 7. 立即更新代码预览
+            updateCodePreview();
+            
+            console.log('删除步骤完成，UI和数据已同步');
+        }
+
+        // 初始化步骤拖拽功能
+        function initStepDragAndDrop() {
+            const steps = document.querySelectorAll('.step-item');
+            steps.forEach(step => makeStepDraggable(step));
+        }
+
+        // 使步骤可拖拽
+        function makeStepDraggable(step) {
+            step.draggable = true;
+            
+            step.addEventListener('dragstart', (e) => {
+                step.classList.add('dragging', 'opacity-50', 'shadow-md');
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', step.dataset.stepId);
+            });
+            
+            step.addEventListener('dragend', () => {
+                step.classList.remove('dragging', 'opacity-50', 'shadow-md');
+                // 移除所有放置位置的高亮
+                document.querySelectorAll('.step-item.drag-over').forEach(el => {
+                    el.classList.remove('drag-over', 'border-primary');
+                });
+            });
+            
+            // 为步骤添加拖拽经过事件
+            step.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (!step.classList.contains('dragging')) {
+                    step.classList.add('drag-over', 'border-primary');
+                }
+            });
+            
+            step.addEventListener('dragleave', () => {
+                step.classList.remove('drag-over', 'border-primary');
+            });
+            
+            step.addEventListener('drop', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                step.classList.remove('drag-over', 'border-primary');
+                
+                const draggedStep = document.querySelector('.step-item.dragging');
+                if (draggedStep && draggedStep !== step) {
+                    handleStepReordering(e, draggedStep, step);
+                }
+            });
+        }
+
+        // 处理步骤重新排序 - 简化实现，专注于DOM操作
+        function handleStepReordering(e, draggedStep, targetStep = null) {
+            console.log('处理拖拽重新排序');
+            const stepsContainer = document.getElementById('steps-container');
+            
+            if (targetStep && draggedStep !== targetStep) {
+                // 如果有目标步骤，根据位置插入
+                // 这里不需要计算索引，直接使用DOM API
+                if (draggedStep.compareDocumentPosition(targetStep) & Node.DOCUMENT_POSITION_FOLLOWING) {
+                    // draggedStep 在 targetStep 之前，需要放到 targetStep 之后
+                    stepsContainer.insertBefore(draggedStep, targetStep.nextSibling);
+                } else {
+                    // draggedStep 在 targetStep 之后，需要放到 targetStep 之前
+                    stepsContainer.insertBefore(draggedStep, targetStep);
+                }
+            } else if (!targetStep && (e.target === stepsContainer || e.target.closest('#flow-container'))) {
+                // 如果拖到容器空白处，放在末尾
+                stepsContainer.appendChild(draggedStep);
+            }
+            
+            // 调用统一的顺序更新函数 - 这会处理所有UI和数据更新
+            // 注意：updateStepsOrder内部会调用rebuildStepsUI确保UI完全同步
+            updateStepsOrder();
+        }
+        
+        // 上移步骤 - 简化实现，专注于DOM操作
+        function moveStepUp(stepId) {
+            console.log('尝试上移步骤:', stepId);
+            const stepsContainer = document.getElementById('steps-container');
+            const currentStep = document.getElementById(`step-${stepId}`);
+            
+            if (currentStep && currentStep.previousElementSibling) {
+                // 直接将当前步骤移到前一个步骤前面
+                stepsContainer.insertBefore(currentStep, currentStep.previousElementSibling);
+                console.log('已移动步骤到上一位置');
+                
+                // 调用统一的顺序更新函数，这会处理所有UI和数据更新
+                updateStepsOrder();
+            } else {
+                console.log('步骤已在顶部，无法上移');
+            }
+        }
+        
+        // 下移步骤 - 简化实现，专注于DOM操作
+        function moveStepDown(stepId) {
+            console.log('尝试下移步骤:', stepId);
+            const stepsContainer = document.getElementById('steps-container');
+            const currentStep = document.getElementById(`step-${stepId}`);
+            
+            if (currentStep && currentStep.nextElementSibling) {
+                // 直接将当前步骤移到后一个步骤后面
+                stepsContainer.insertBefore(currentStep, currentStep.nextElementSibling.nextElementSibling);
+                console.log('已移动步骤到下一位置');
+                
+                // 调用统一的顺序更新函数，这会处理所有UI和数据更新
+                updateStepsOrder();
+            } else {
+                console.log('步骤已在底部，无法下移');
+            }
+        }
+        
+        // 重建步骤UI - 完全重写，确保正确的编号显示
+        function rebuildStepsUI() {
+            console.log('开始重建步骤UI，数组长度:', steps.length);
+            const stepsContainer = document.getElementById('steps-container');
+            
+            // 清空容器
+            stepsContainer.innerHTML = '';
+            
+            // 直接按照数组当前顺序渲染
+            steps.forEach((step, index) => {
+                // 使用数组索引+1作为唯一显示编号
+                const displayNumber = index + 1;
+                console.log(`处理步骤索引:${index}，显示编号:${displayNumber}`);
+                
+                // 创建新的步骤对象，确保ID更新
+                const updatedStep = {
+                    ...step,
+                    id: displayNumber  // 强制使用显示编号作为ID
+                };
+                
+                // 直接创建新的步骤元素
+                const stepEl = document.createElement('div');
+                stepEl.className = 'step-item bg-white p-3 rounded-lg border border-gray-200 shadow-sm relative';
+                stepEl.id = `step-${displayNumber}`; // 使用显示编号作为ID
+                stepEl.dataset.stepId = displayNumber; // 数据属性也使用显示编号
+                stepEl.dataset.moduleType = updatedStep.type;
+                
+                // 步骤内容
+                const moduleIcon = moduleInfo[updatedStep.type].icon;
+                const moduleTitle = moduleInfo[updatedStep.type].title;
+                
+                // 直接在innerHTML中设置正确的编号
+                // 这里是关键：直接将displayNumber写入HTML
+                stepEl.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <span class="bg-primary/10 text-primary w-7 h-7 rounded-full flex items-center justify-center font-medium text-sm">${displayNumber}</span>
+                            <div>
+                                <h4 class="font-medium text-gray-800 flex items-center">
+                                    <i class="fa ${moduleIcon.split(' ')[0]} ${moduleIcon.split(' ')[1]} mr-2"></i>
+                                    ${moduleTitle}
+                                </h4>
+                                <div class="config-summary text-gray-500 text-sm mt-1"></div>
+                            </div>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button class="move-up-step text-gray-500 hover:text-primary p-1 rounded hover:bg-gray-100">
+                                <i class="fa fa-arrow-up"></i>
+                            </button>
+                            <button class="move-down-step text-gray-500 hover:text-primary p-1 rounded hover:bg-gray-100">
+                                <i class="fa fa-arrow-down"></i>
+                            </button>
+                            <button class="edit-step text-gray-500 hover:text-primary p-1 rounded hover:bg-gray-100">
+                                <i class="fa fa-pencil"></i>
+                            </button>
+                            <button class="delete-step text-gray-500 hover:text-red-500 p-1 rounded hover:bg-gray-100">
+                                <i class="fa fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                // 强制设置第一个span元素的文本内容 - 额外保障
+                const numberSpan = stepEl.querySelector('span[class*="bg-primary"]');
+                if (numberSpan) {
+                    numberSpan.textContent = displayNumber.toString();
+                    console.log(`已设置步骤${displayNumber}的编号显示`);
+                }
+                
+                // 添加配置摘要
+                updateStepSummary(stepEl, updatedStep.type, updatedStep.config);
+                
+                // 添加到容器
+                stepsContainer.appendChild(stepEl);
+                
+                // 添加事件监听器
+                stepEl.querySelector('.edit-step').addEventListener('click', () => editStep(displayNumber));
+                stepEl.querySelector('.delete-step').addEventListener('click', () => deleteStepConfirm(displayNumber));
+                stepEl.querySelector('.move-up-step').addEventListener('click', () => moveStepUp(displayNumber));
+                stepEl.querySelector('.move-down-step').addEventListener('click', () => moveStepDown(displayNumber));
+                
+                // 使步骤可拖拽
+                makeStepDraggable(stepEl);
+                
+                // 最后的验证和修复
+                setTimeout(() => {
+                    const addedElement = document.getElementById(`step-${displayNumber}`);
+                    if (addedElement) {
+                        // 修复选择器 - 使用属性选择器而不是直接使用包含斜杠的类名
+                        const numElement = addedElement.querySelector('span[class*="bg-primary"]');
+                        if (numElement && numElement.textContent !== displayNumber.toString()) {
+                            console.warn(`修复步骤${displayNumber}的错误编号:`, numElement.textContent, '->', displayNumber);
+                            numElement.textContent = displayNumber.toString();
+                        }
+                    }
+                }, 0);
+            });
+            
+            // 关键：更新原始步骤数组
+            steps = steps.map((step, index) => ({
+                ...step,
+                id: index + 1  // 确保数组中的每个步骤ID也更新为连续的
+            }));
+            
+            currentStepId = steps.length;
+            console.log('步骤UI重建完成，已确保显示编号连续，steps数组:', steps);
+            
+            // 更新代码预览
+            updateCodePreview();
+        }
+
+        // 更新步骤数据顺序 - 简化实现，只负责数据同步
+        function updateStepsOrder() {
+            console.log('执行步骤顺序更新');
+            const stepsContainer = document.getElementById('steps-container');
+            const stepElements = Array.from(stepsContainer.querySelectorAll('.step-item'));
+            const newSteps = [];
+            
+            // 按照DOM顺序重建步骤数组
+            stepElements.forEach((element, index) => {
+                // 从DOM元素获取当前步骤ID
+                const stepId = parseInt(element.dataset.stepId);
+                
+                // 查找原始步骤数据
+                const originalStep = steps.find(s => s.id === stepId);
+                if (originalStep) {
+                    // 创建新的步骤对象，使用索引+1作为新ID
+                    const updatedStep = {
+                        ...originalStep,
+                        id: index + 1  // 确保ID连续
+                    };
+                    newSteps.push(updatedStep);
+                }
+            });
+            
+            // 完全替换steps数组
+            steps = newSteps;
+            currentStepId = steps.length;
+            
+            console.log('步骤数据已同步，新顺序:', steps.map(s => s.id));
+            
+            // 直接调用rebuildStepsUI来重建整个UI
+            // 这是最可靠的方法，确保UI与数据完全一致
+            rebuildStepsUI();
+            
+            // 注意：rebuildStepsUI内部已经调用了updateCodePreview
+        }
+
+        // 更新步骤编号确保ID连续
+        function updateStepNumbers() {
+            const stepElements = document.querySelectorAll('.step-item');
+            
+            // 确保步骤数据与DOM元素顺序同步
+            if (stepElements.length === steps.length) {
+                // 按DOM顺序重新编号步骤数据
+                stepElements.forEach((stepElement, index) => {
+                    const originalId = parseInt(stepElement.dataset.stepId);
+                    const newId = index + 1;
+                    
+                    // 更新数据模型中的ID
+                    const stepIndex = steps.findIndex(s => s.id === originalId);
+                    if (stepIndex !== -1) {
+                        steps[stepIndex].id = newId;
+                    }
+                    
+                    // 更新DOM显示和属性
+                    const numberElement = stepElement.querySelector('.bg-primary\/10');
+                    if (numberElement) {
+                        numberElement.textContent = newId;
+                    }
+                    
+                    stepElement.id = `step-${newId}`;
+                    stepElement.dataset.stepId = newId;
+                });
+                
+                console.log('步骤已重新编号，确保ID连续性');
+            }
+            
+            // 更新当前最大ID
+            currentStepId = steps.length;
+        }
+
+        // 初始化代码保存功能
+        function initCodeEditSave() {
+            const saveBtn = document.getElementById('save-code-btn');
+            if (saveBtn) {
+                saveBtn.addEventListener('click', function() {
+                    const codeElement = document.getElementById('bat-code');
+                    if (codeElement) {
+                        // 创建一个Blob对象
+                        const blob = new Blob([codeElement.value], { type: 'text/plain' });
+                        const url = URL.createObjectURL(blob);
+                        
+                        // 创建下载链接并点击
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'batch_script.bat';
+                        document.body.appendChild(a);
+                        a.click();
+                        
+                        // 清理
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                        
+                        // 显示成功消息
+                        showMessage('批处理文件已保存', 'success');
+                    }
+                });
+            }
+        }
+        
+        // 简单可靠的代码预览更新机制
+        function updateCodePreview() {
+            console.log('更新代码预览，步骤数量:', steps.length);
+            
+            // 获取预览元素
+            const codeElement = document.getElementById('bat-code');
+            if (!codeElement) {
+                console.error('代码预览元素未找到');
+                return;
+            }
+            
+            // 初始化BAT代码
+            let batCode = '@echo off\n';
+            batCode += 'REM 生成的批处理文件\n\n';
+            
+            // 直接遍历步骤数组，使用索引+1作为显示序号
+            // 这确保了无论ID如何，都能按顺序生成连续的序号
+            steps.forEach((step, index) => {
+                if (step && moduleInfo[step.type]) {
+                    // 使用索引+1作为序号，确保连续
+                    const displayNumber = index + 1;
+                    batCode += `REM ${displayNumber}. ${moduleInfo[step.type].title}\n`;
+                    batCode += generateBatCode(step.type, step.config);
+                    batCode += '\n';
+                }
+            });
+            
+            // 添加结束代码
+            batCode += 'pause\n';
+            
+            // 直接设置文本内容 - 对于textarea使用value属性
+            codeElement.value = batCode;
+            
+            console.log('代码预览已更新，内容已设置');
+        }
+        
+        // 初始化代码编辑和保存功能
+        initCodeEditSave();
+        
+        // 显示消息提示函数
+        function showMessage(message, type = 'info') {
+            // 创建toast元素
+            const toast = document.createElement('div');
+            toast.className = `fixed bottom-4 right-4 px-4 py-3 rounded-md shadow-lg transition-all duration-300 ease-in-out transform translate-y-0 z-50 ${type === 'success' ? 'bg-green-500 text-white' : 'bg-blue-500 text-white'}`;
+            toast.innerHTML = `
+                <i class="fa ${type === 'success' ? 'fa-check-circle' : 'fa-info-circle'} mr-2"></i>
+                ${message}
+            `;
+            
+            // 添加到文档
+            document.body.appendChild(toast);
+            
+            // 3秒后淡出并移除
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-4');
+                setTimeout(() => {
+                    document.body.removeChild(toast);
+                }, 300);
+            }, 3000);
+        }
+
+        // 生成BAT代码 - 支持各种高级选项和多选功能
+        function generateBatCode(moduleType, config) {
+            switch (moduleType) {
+                case 'copy_file':
+                    // 处理复制文件选项
+                    let copyOptions = '';
+                    if (config.options && Array.isArray(config.options) && config.options.length > 0) {
+                        copyOptions = ' ' + config.options.join(' ');
+                    } else {
+                        copyOptions = ' /Y'; // 默认覆盖不提示
+                    }
+                    return `copy${copyOptions} "${config.source}" "${config.destination}"\n`;
+                    
+                case 'move_file':
+                    // 处理移动文件选项
+                    let moveOptions = '';
+                    if (config.options && Array.isArray(config.options) && config.options.length > 0) {
+                        moveOptions = ' ' + config.options.join(' ');
+                    } else {
+                        moveOptions = ' /Y'; // 默认覆盖不提示
+                    }
+                    return `move${moveOptions} "${config.source}" "${config.destination}"\n`;
+                    
+                case 'delete_file':
+                    // 处理删除文件选项
+                    let delOptions = '';
+                    if (config.options && Array.isArray(config.options) && config.options.length > 0) {
+                        delOptions = ' ' + config.options.join(' ');
+                    } else {
+                        delOptions = ' /F /Q'; // 默认强制删除且不提示
+                    }
+                    return `del${delOptions} "${config.file_path}"\n`;
+                    
+                case 'create_file':
+                    // 处理创建文件和编码选项
+                    let escapedContent = config.content || '';
+                    escapedContent = escapedContent.replace(/"/g, '""'); // 转义双引号
+                    
+                    if (config.encoding === 'utf8') {
+                        // UTF-8编码文件创建（Windows 10及以上）
+                        return `@(echo ${escapedContent}) > "${config.file_path}" /U\n`;
+                    } else {
+                        return `echo ${escapedContent} > "${config.file_path}"\n`;
+                    }
+                    
+                case 'copy_folder':
+                    // 处理复制文件夹选项
+                    let xcopyOptions = '/I'; // 默认假设目标是目录
+                    if (config.options && Array.isArray(config.options) && config.options.length > 0) {
+                        xcopyOptions = config.options.join(' ');
+                    } else {
+                        xcopyOptions = '/E /I /Y'; // 默认复制所有子文件夹且覆盖不提示
+                    }
+                    return `xcopy "${config.source}" "${config.destination}" ${xcopyOptions}\n`;
+                    
+                case 'move_folder':
+                    // 处理移动文件夹选项
+                    let moveDirOptions = '';
+                    if (config.options && Array.isArray(config.options) && config.options.length > 0) {
+                        moveDirOptions = ' ' + config.options.join(' ');
+                    }
+                    return `move${moveDirOptions} "${config.source}" "${config.destination}"\n`;
+                    
+                case 'delete_folder':
+                    // 处理删除文件夹选项
+                    let rmdirOptions = '/S /Q'; // 默认删除所有内容且不提示
+                    if (config.options && Array.isArray(config.options) && config.options.length > 0) {
+                        rmdirOptions = config.options.join(' ');
+                    }
+                    return `rmdir "${config.folder_path}" ${rmdirOptions}\n`;
+                    
+                case 'create_folder':
+                    // 处理创建文件夹选项
+                    if (config.create_parent && config.create_parent.includes('true')) {
+                        // 使用mkdir的多级创建功能
+                        return `mkdir "${config.folder_path}"\n`;
+                    }
+                    return `mkdir "${config.folder_path}"\n`;
+                    
+                case 'echo':
+                    // 处理echo显示选项
+                    if (config.options === 'no_newline') {
+                        // 不添加换行符
+                        return `echo|set /p="${config.message}"\n`;
+                    } else if (config.options === 'empty_line') {
+                        // 输出空行
+                        return `echo.\n`;
+                    }
+                    // 正常显示
+                    return `echo ${config.message}\n`;
+                    
+                case 'pause':
+                    // 处理pause自定义消息
+                    if (config.custom_message) {
+                        return `echo ${config.custom_message} & pause > nul\n`;
+                    }
+                    return 'pause\n';
+                    
+                case 'start':
+                    // 处理start程序启动选项
+                    let startOptions = '';
+                    if (config.options && Array.isArray(config.options) && config.options.length > 0) {
+                        startOptions = ' ' + config.options.join(' ');
+                    }
+                    
+                    // 处理工作目录
+                    let workingDir = '';
+                    if (config.working_dir) {
+                        workingDir = `"${config.working_dir}"`;
+                    }
+                    
+                    if (config.arguments) {
+                        return `start${startOptions} ${workingDir} "" "${config.program_path}" ${config.arguments}\n`;
+                    } else {
+                        return `start${startOptions} ${workingDir} "" "${config.program_path}"\n`;
+                    }
+                
+                // 新增模块1: 复制文件夹并改名
+                case 'copy_folder_rename':
+                    let xcopyRenameOptions = '/E /I /Y'; // 默认复制所有子文件夹、假设目标是目录且覆盖不提示
+                    if (config.options && Array.isArray(config.options) && config.options.length > 0) {
+                        xcopyRenameOptions = config.options.join(' ');
+                    }
+                    return `xcopy "${config.source}" "${config.destination}" ${xcopyRenameOptions}\n`;
+                
+                // 新增模块2: 复制文件并改名
+                case 'copy_file_rename':
+                    let copyRenameOptions = ' /Y'; // 默认覆盖不提示
+                    if (config.options && Array.isArray(config.options) && config.options.length > 0) {
+                        copyRenameOptions = ' ' + config.options.join(' ');
+                    }
+                    return `copy${copyRenameOptions} "${config.source}" "${config.destination}"\n`;
+                
+                // 新增模块3: 暂停运行x秒
+                case 'pause_seconds':
+                    const seconds = parseInt(config.seconds) || 0;
+                    return `timeout /T ${seconds} /NOBREAK > nul\n`;
+                
+                // 新增模块4: 修改ini配置
+                case 'modify_ini':
+                    return `setlocal enabledelayedexpansion\n\nrem 检查配置节是否存在\nfor /f "tokens=1* delims==" %%a in ('findstr /i "^${config.section}" "${config.ini_path}"') do (\n    set inSection=true\n)\n\nrem 如果配置节不存在，则创建\nif not defined inSection (\n    echo [${config.section}]>>"${config.ini_path}"\n)\n\nrem 备份原始文件\nif exist "temp.ini" del "temp.ini"\n\nrem 复制除目标键外的所有内容\nfor /f "delims=" %%i in ('findstr /v "^${config.key}=" "${config.ini_path}"') do (\n    echo %%i>>"temp.ini"\n)\n\nrem 添加修改后的配置项\necho ${config.key}=${config.value}>>"temp.ini"\n\nrem 替换原文件\ndel "${config.ini_path}"\nrename "temp.ini" "${config.ini_path}"\nendlocal\n`;
+                
+                // 新增模块5: 从源INI复制配置到目标INI
+                case 'copy_modify_ini':
+                    // 如果目标配置键未提供，则使用源配置键
+                    const targetKey = config.target_key || config.source_key;
+                    return `setlocal enabledelayedexpansion\n\nrem 从源INI文件获取配置值\nset "sourceValue="\nset "inSourceSection=false"\n\nfor /f "usebackq tokens=*" %%a in ("${config.source_ini}") do (\n    rem 去除行首尾空格\n    set "line=%%a"\n    \n    rem 检查是否是配置节\n    if "!line:~0,1!"=="[" (\n        rem 找到配置节\n        set "currentSection=!line:~1,-1!"\n        \n        rem 检查是否进入目标配置节\n        if /i "!currentSection!"=="${config.source_section}" (\n            set "inSourceSection=true"\n        ) else (\n            set "inSourceSection=false"\n        )\n    ) else if !inSourceSection! equ true (\n        rem 在目标配置节中，检查配置键\n        for /f "tokens=1* delims==" %%b in ("!line!") do (\n            set "key=%%b"\n            set "value=%%c"\n            \n            rem 找到目标配置键\n            if /i "!key!"=="${config.source_key}" (\n                set "sourceValue=!value!"\n                goto :ExitLoop\n            )\n        )\n    )\n)\n:ExitLoop\n\nrem 检查是否获取到值\nif not defined sourceValue (\n    echo 错误：在源INI文件中未找到配置项 [${config.source_section}]${config.source_key}\n    goto :End\n)\n\nrem 确保目标INI文件存在\nif not exist "${config.target_ini}" (\n    echo [${config.target_section}] > "${config.target_ini}"\n)\n\nrem 检查目标配置节是否存在\nset "inTargetSection=false"\nfor /f "usebackq tokens=*" %%a in ("${config.target_ini}") do (\n    set "line=%%a"\n    if "!line:~0,1!"=="[" (\n        set "currentSection=!line:~1,-1!"\n        if /i "!currentSection!"=="${config.target_section}" (\n            set "inTargetSection=true"\n            goto :TargetSectionCheckEnd\n        )\n    )\n)\n:TargetSectionCheckEnd\n\nrem 如果目标配置节不存在，添加它\nif not !inTargetSection! equ true (\n    echo. >> "${config.target_ini}"\n    echo [${config.target_section}] >> "${config.target_ini}"\n)\n\nrem 创建临时文件以保存修改后的内容\nif exist "temp.ini" del "temp.ini"\n\nset "foundKey=false"\nset "inSection=false"\n\nfor /f "usebackq tokens=*" %%a in ("${config.target_ini}") do (\n    set "line=%%a"\n    \n    rem 检查是否是配置节\n    if "!line:~0,1!"=="[" (\n        set "currentSection=!line:~1,-1!"\n        \n        rem 写入当前行\n        echo !line! >> "temp.ini"\n        \n        rem 检查是否进入目标配置节\n        if /i "!currentSection!"=="${config.target_section}" (\n            set "inSection=true"\n        ) else (\n            set "inSection=false"\n        )\n    ) else if !inSection! equ true (\n        rem 在目标配置节中，检查配置键\n        for /f "tokens=1* delims==" %%b in ("!line!") do (\n            set "key=%%b"\n            \n            rem 找到目标配置键\n            if /i "!key!"=="${targetKey}" (\n                echo ${targetKey}=!sourceValue! >> "temp.ini"\n                set "foundKey=true"\n            ) else (\n                echo !line! >> "temp.ini"\n            )\n        )\n    ) else (\n        rem 不在目标配置节，直接写入\n        echo !line! >> "temp.ini"\n    )\n)\n\nrem 如果没有找到配置键，在配置节末尾添加\nif not !foundKey! equ true (\n    echo ${targetKey}=!sourceValue! >> "temp.ini"\n)\n\nrem 替换原文件\ndel "${config.target_ini}"\nrename "temp.ini" "${config.target_ini}"\n\necho 已成功从源INI文件复制配置值\n\n:End\nendlocal\n`;
+                
+                // 新增模块6: 复制并替换 - 复制指定文件夹下所有文件到指定文件夹并替换
+                case 'copy_folder_replace':
+                    let copyReplaceOptions = '/E /I /Y'; // 默认复制所有子文件夹、假设目标是目录且覆盖不提示
+                    if (config.options && Array.isArray(config.options) && config.options.length > 0) {
+                        copyReplaceOptions = config.options.join(' ');
+                    }
+                    // 在源文件夹路径后添加\*，确保只复制文件夹内的文件而不是整个文件夹
+                    const sourcePathWithWildcard = config.source_folder.endsWith('\\') ? config.source_folder + '*' : config.source_folder + '\\*';
+                    return `xcopy "${sourcePathWithWildcard}" "${config.target_folder}" ${copyReplaceOptions}\n`;
+                
+                // 新增模块7: 注册dll和ocx文件
+                case 'register_dll_ocx':
+                    let regOptions = '';
+                    if (config.options && Array.isArray(config.options) && config.options.length > 0) {
+                        regOptions = config.options.join(' ');
+                    }
+                    
+                    // 根据操作类型和选项生成regsvr32命令
+                    let actionFlag = '/s'; // 默认静默模式
+                    if (config.action === 'unregister' && !regOptions.includes('/u')) {
+                        actionFlag = '/u /s';
+                    }
+                    
+                    // 如果用户没有选择静默模式但选择了注册，不添加/s
+                    if (config.action === 'register' && !regOptions.includes('/s')) {
+                        actionFlag = '';
+                    }
+                    
+                    return `regsvr32 ${actionFlag} ${regOptions} \"${config.file_path}\"\n`;
+                
+                // 新增模块8: 调用其他bat文件
+                case 'call_other_bat':
+                    const parameters = config.parameters || '';
+                    let callCmd = '';
+                    
+                    switch (config.call_type) {
+                        case 'call':
+                            callCmd = `call \"${config.bat_path}\" ${parameters}`;
+                            break;
+                        case 'start':
+                            let startOptions = '';
+                            if (config.start_options && Array.isArray(config.start_options) && config.start_options.length > 0) {
+                                startOptions = config.start_options.join(' ');
+                            }
+                            callCmd = `start ${startOptions} \"Batch Script\" \"${config.bat_path}\" ${parameters}`;
+                            break;
+                        case 'direct':
+                        default:
+                            callCmd = `\"${config.bat_path}\" ${parameters}`;
+                            break;
+                    }
+                    
+                    return `${callCmd}\n`;
+                    
+                // 新增模块9: 关闭软件进程
+                case 'close_process':
+                    let taskkillParams = '';
+                    
+                    // 根据终止方式设置参数
+                    switch (config.kill_type) {
+                        case 't':
+                            taskkillParams = '/t'; // 正常终止，允许程序清理
+                            break;
+                        case 'f':
+                            taskkillParams = '/f'; // 强制终止
+                            break;
+                        case 'tf':
+                            taskkillParams = '/t /f'; // 强制终止树
+                            break;
+                        default:
+                            taskkillParams = '/t'; // 默认使用正常终止
+                    }
+                    
+                    // 生成taskkill命令
+                    return `taskkill ${taskkillParams} /im \"${config.process_name}\"\n`;
+                    
+                // 新增模块10: 连接映射盘
+                case 'connect_network_drive':
+                    let netUseCommands = '';
+                    
+                    // 如果需要强制断开已有映射
+                    if (config.force_disconnect && config.force_disconnect.includes('true')) {
+                        netUseCommands += `net use ${config.drive_letter} /delete /y\n`;
+                    }
+                    
+                    // 构建连接命令
+                    let connectCommand = `net use ${config.drive_letter} "${config.network_path}"`;
+                    
+                    // 添加用户名和密码（如果提供）
+                    if (config.username) {
+                        connectCommand += ` /user:"${config.username}"`;
+                        if (config.password) {
+                            connectCommand += ` "${config.password}"`;
+                        }
+                    }
+                    
+                    // 添加持久映射选项
+                    if (config.persistent && config.persistent.includes('true')) {
+                        connectCommand += ' /persistent:yes';
+                    } else {
+                        connectCommand += ' /persistent:no';
+                    }
+                    
+                    netUseCommands += connectCommand + '\n';
+                    return netUseCommands;
+                    
+                // 新增模块11: 启动黑窗口软件
+                case 'start_console_app':
+                    let consoleCommands = '';
+                    
+                    // 设置应用路径环境变量
+                    consoleCommands += `set "appPath=${config.app_path}"\n`;
+                    
+                    // 设置工作目录环境变量
+                    consoleCommands += `set "appDir=${config.app_dir}"\n`;
+                    
+                    // 切换到工作目录
+                    consoleCommands += `cd /d "%appDir%"\n`;
+                    
+                    // 显示启动提示消息（如果选择）
+                    if (config.show_message && config.show_message.includes('true')) {
+                        consoleCommands += `echo 启动程序，按任意键关闭窗口...\n`;
+                    }
+                    
+                    // 启动程序
+                    consoleCommands += `"%appPath%"\n`;
+                    
+                    // 执行后暂停（如果选择）
+                    if (config.pause_after && config.pause_after.includes('true')) {
+                        consoleCommands += `pause :: 程序执行完毕后暂停，保留窗口\n`;
+                    }
+                    
+                    return consoleCommands;
+                    
+                // 新增模块12: 网络测试
+                case 'network_ping':
+                    let pingCommands = '';
+                    
+                    // 显示测试目标信息
+                    pingCommands += `echo 正在ping测试目标: ${config.target_ip}\n`;
+                    
+                    // 构建ping命令
+                    let pingCommand = `ping `;
+                    
+                    // 添加ping参数
+                    if (config.ping_count && !config.continuous) {
+                        pingCommand += `-n ${config.ping_count} `;
+                    }
+                    
+                    if (config.packet_size) {
+                        pingCommand += `-l ${config.packet_size} `;
+                    }
+                    
+                    if (config.timeout) {
+                        pingCommand += `-w ${config.timeout} `;
+                    }
+                    
+                    if (config.continuous && config.continuous.includes('true')) {
+                        pingCommand += `-t `;
+                    }
+                    
+                    // 添加目标IP
+                    pingCommand += `"${config.target_ip}"`;
+                    
+                    // 添加ping命令到结果
+                    pingCommands += pingCommand + '\n';
+                    
+                    // 显示详细说明（如果是持续ping）
+                    if (config.continuous && config.continuous.includes('true')) {
+                        pingCommands += `echo 正在持续ping测试，按 Ctrl+C 停止测试...\n`;
+                    }
+                    
+                    // 执行后暂停（如果选择）
+                    if (config.pause_after && config.pause_after.includes('true')) {
+                        pingCommands += `pause :: 测试完成后暂停，保留窗口\n`;
+                    }
+                    
+                    return pingCommands;
+                    
+                // 新增模块13: 定时关机或多久后关机
+                case 'schedule_shutdown':
+                    let shutdownCommands = '';
+                    
+                    // 构建shutdown命令
+                    let shutdownCommand = `shutdown `;
+                    
+                    // 根据动作类型设置参数
+                    switch (config.action) {
+                        case 'restart':
+                            shutdownCommand += `-r `;
+                            break;
+                        case 'hibernate':
+                            shutdownCommand += `-h `;
+                            break;
+                        case 'logoff':
+                            shutdownCommand += `-l `;
+                            break;
+                        default: // shutdown
+                            shutdownCommand += `-s `;
+                    }
+                    
+                    // 根据关机类型设置时间参数
+                    if (config.shutdown_type === 'countdown') {
+                        // 倒计时模式：将分钟转换为秒
+                        const seconds = parseInt(config.minutes) * 60;
+                        shutdownCommand += `-t ${seconds} `;
+                        shutdownCommands += `echo 系统将在 ${config.minutes} 分钟后${config.action === 'shutdown' ? '关机' : config.action === 'restart' ? '重启' : config.action === 'hibernate' ? '休眠' : '注销'}...\n`;
+                    } else { // scheduled
+                        // 定时模式：计算从现在到指定时间的秒数
+                        const now = new Date();
+                        const targetTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), parseInt(config.hour), parseInt(config.minute), 0);
+                        // 如果目标时间已过，则设置为明天的同一时间
+                        if (targetTime <= now) {
+                            targetTime.setDate(targetTime.getDate() + 1);
+                        }
+                        const seconds = Math.floor((targetTime - now) / 1000);
+                        shutdownCommand += `-t ${seconds} `;
+                        shutdownCommands += `echo 系统将在 ${config.hour}:${config.minute.padStart(2, '0')}${targetTime.getDate() > now.getDate() ? '（明天）' : ''}${config.action === 'shutdown' ? '关机' : config.action === 'restart' ? '重启' : config.action === 'hibernate' ? '休眠' : '注销'}...\n`;
+                    }
+                    
+                    // 添加提示消息（如果有）
+                    if (config.message) {
+                        shutdownCommand += `-c "${config.message}" `;
+                    }
+                    
+                    // 显示执行的命令（如果选择）
+                    if (config.show_command && config.show_command.includes('true')) {
+                        shutdownCommands += `echo 执行命令: ${shutdownCommand}\n`;
+                    }
+                    
+                    // 添加shutdown命令到结果
+                    shutdownCommands += shutdownCommand + '\n';
+                    
+                    // 创建取消关机脚本（如果选择）
+                    if (config.create_cancel && config.create_cancel.includes('true')) {
+                        shutdownCommands += `echo 创建取消${config.action === 'shutdown' ? '关机' : config.action === 'restart' ? '重启' : config.action === 'hibernate' ? '休眠' : '注销'}脚本...\n`;
+                        shutdownCommands += `echo shutdown -a > 取消${config.action === 'shutdown' ? '关机' : config.action === 'restart' ? '重启' : config.action === 'hibernate' ? '休眠' : '注销'}.bat\n`;
+                        shutdownCommands += `echo echo ${config.action === 'shutdown' ? '关机' : config.action === 'restart' ? '重启' : config.action === 'hibernate' ? '休眠' : '注销'}计划已取消！>> 取消${config.action === 'shutdown' ? '关机' : config.action === 'restart' ? '重启' : config.action === 'hibernate' ? '休眠' : '注销'}.bat\n`;
+                        shutdownCommands += `echo pause >> 取消${config.action === 'shutdown' ? '关机' : config.action === 'restart' ? '重启' : config.action === 'hibernate' ? '休眠' : '注销'}.bat\n`;
+                        shutdownCommands += `echo 取消脚本已创建: 取消${config.action === 'shutdown' ? '关机' : config.action === 'restart' ? '重启' : config.action === 'hibernate' ? '休眠' : '注销'}.bat\n`;
+                    }
+                    
+                    return shutdownCommands;
+                    
+                // 新增模块14: 修改字体颜色
+                case 'text_color':
+                    let colorCommands = '';
+                    
+                    // 构建颜色代码
+                    let colorCode = config.text_color;
+                    if (config.bg_color) {
+                        colorCode = config.bg_color + colorCode;
+                    }
+                    
+                    // 显示设置信息
+                    colorCommands += `echo 设置文本颜色...\n`;
+                    
+                    if (config.apply_to_text && config.apply_to_text.includes('true')) {
+                        // 只对特定文本应用颜色
+                        if (config.target_text) {
+                            // 使用ANSI转义序列或使用for循环技巧来应用颜色
+                            // 这里使用Windows cmd的特殊方法
+                            colorCommands += `echo.\n`;
+                            colorCommands += `color ${colorCode}\n`;
+                            colorCommands += `echo ${config.target_text}\n`;
+                            
+                            // 应用后重置颜色
+                            if (config.reset_after && config.reset_after.includes('true')) {
+                                colorCommands += `color 07\n`;
+                            }
+                        }
+                    } else {
+                        // 全局设置颜色
+                        colorCommands += `color ${colorCode}\n`;
+                        
+                        // 保存为默认颜色
+                        if (config.save_default && config.save_default.includes('true')) {
+                            colorCommands += `reg add "HKCU\Console" /v ScreenColors /t REG_DWORD /d ${parseInt(colorCode, 16)} /f > nul\n`;
+                            colorCommands += `echo 已将当前颜色设置保存为控制台默认颜色\n`;
+                        }
+                    }
+                    
+                    return colorCommands;
+                    
+                // 新增模块15: IF判断
+                case 'if_condition':
+                    let ifCommands = '';
+                    
+                    // 构建IF条件
+                    ifCommands += `REM IF判断条件\n`;
+                    
+                    // 根据条件类型生成不同的IF语句
+                    switch (config.condition_type) {
+                        case 'exist':
+                            ifCommands += `if exist "${config.path_or_value1}" (`;
+                            break;
+                        case 'not_exist':
+                            ifCommands += `if not exist "${config.path_or_value1}" (`;
+                            break;
+                        case 'equal':
+                            ifCommands += `if "${config.path_or_value1}" == "${config.value2}" (`;
+                            break;
+                        case 'not_equal':
+                            ifCommands += `if not "${config.path_or_value1}" == "${config.value2}" (`;
+                            break;
+                        case 'greater':
+                            ifCommands += `if %${config.path_or_value1}% GTR ${config.value2} (`;
+                            break;
+                        case 'less':
+                            ifCommands += `if %${config.path_or_value1}% LSS ${config.value2} (`;
+                            break;
+                        case 'greater_equal':
+                            ifCommands += `if %${config.path_or_value1}% GEQ ${config.value2} (`;
+                            break;
+                        case 'less_equal':
+                            ifCommands += `if %${config.path_or_value1}% LEQ ${config.value2} (`;
+                            break;
+                    }
+                    
+                    // 添加条件成立时执行的命令
+                    const trueCommands = config.true_command.split('\n').map(cmd => `    ${cmd}`).join('\n');
+                    ifCommands += `\n${trueCommands}\n)\n`;
+                    
+                    // 添加ELSE分支（如果有）
+                    if (config.use_else && config.use_else.includes('true') && config.false_command) {
+                        ifCommands += `else (`;
+                        const falseCommands = config.false_command.split('\n').map(cmd => `    ${cmd}`).join('\n');
+                        ifCommands += `\n${falseCommands}\n)\n`;
+                    }
+                    
+                    // 设置结果变量（如果需要）
+                    if (config.set_variable && config.set_variable.includes('true') && config.var_name) {
+                        ifCommands += `\nREM 根据判断结果设置变量\n`;
+                        
+                        // 为了设置变量，需要重新构造一个带变量赋值的IF语句
+                        ifCommands += `set "${config.var_name}=false"\n`;
+                        
+                        switch (config.condition_type) {
+                            case 'exist':
+                                ifCommands += `if exist "${config.path_or_value1}" set "${config.var_name}=true"`;
+                                break;
+                            case 'not_exist':
+                                ifCommands += `if not exist "${config.path_or_value1}" set "${config.var_name}=true"`;
+                                break;
+                            case 'equal':
+                                ifCommands += `if "${config.path_or_value1}" == "${config.value2}" set "${config.var_name}=true"`;
+                                break;
+                            case 'not_equal':
+                                ifCommands += `if not "${config.path_or_value1}" == "${config.value2}" set "${config.var_name}=true"`;
+                                break;
+                            case 'greater':
+                                ifCommands += `if %${config.path_or_value1}% GTR ${config.value2} set "${config.var_name}=true"`;
+                                break;
+                            case 'less':
+                                ifCommands += `if %${config.path_or_value1}% LSS ${config.value2} set "${config.var_name}=true"`;
+                                break;
+                            case 'greater_equal':
+                                ifCommands += `if %${config.path_or_value1}% GEQ ${config.value2} set "${config.var_name}=true"`;
+                                break;
+                            case 'less_equal':
+                                ifCommands += `if %${config.path_or_value1}% LEQ ${config.value2} set "${config.var_name}=true"`;
+                                break;
+                        }
+                        ifCommands += `\n`;
+                    }
+                    
+                    return ifCommands;
+                    
+                // 新增模块16: 用户输入
+                case 'user_input':
+                    let inputCommands = '';
+                    
+                    // 构建用户输入代码
+                    inputCommands += `REM 用户输入模块\n`;
+                    
+                    // 处理隐藏输入（密码等敏感信息）
+                    if (config.hide_input && config.hide_input.includes('true')) {
+                        // 使用VBScript隐藏输入
+                        inputCommands += `echo Set objPassword = CreateObject("ScriptPW.Password") > "%temp%\getpwd.vbs"\n`;
+                        inputCommands += `echo WScript.StdOut.WriteLine objPassword.GetPassword > "%temp%\getpwd.vbs"\n`;
+                        inputCommands += `echo ${config.prompt_text}\n`;
+                        inputCommands += `for /f "delims=" %%p in ('cscript.exe //nologo "%temp%\getpwd.vbs"') do set "${config.var_name}=%%p"\n`;
+                        inputCommands += `del "%temp%\getpwd.vbs" > nul 2>&1\n`;
+                    } else {
+                        // 普通输入
+                        if (config.default_value) {
+                            inputCommands += `set "default_${config.var_name}=${config.default_value}"\n`;
+                            inputCommands += `echo ${config.prompt_text} [${config.default_value}]\n`;
+                            inputCommands += `set /p "${config.var_name}=" || set "${config.var_name}=%default_${config.var_name}%"\n`;
+                        } else {
+                            inputCommands += `echo ${config.prompt_text}\n`;
+                            inputCommands += `set /p "${config.var_name}="\n`;
+                        }
+                    }
+                    
+                    // 输入验证
+                    if (config.validation) {
+                        inputCommands += `\nREM 输入验证\n`;
+                        inputCommands += `:validate_${config.var_name}\n`;
+                        
+                        switch (config.validation) {
+                            case 'number':
+                                inputCommands += `echo.%${config.var_name}%|findstr /r "^[0-9][0-9]*$" >nul || (\n`;
+                                inputCommands += `    echo ${config.retry_prompt || '请输入有效的数字！'}\n`;
+                                inputCommands += `    if not ${config.hide_input && config.hide_input.includes('true') ? '1==1' : '1==0'} (`; // 非隐藏输入时重新获取
+                                inputCommands += `        set /p "${config.var_name}="\n`;
+                                inputCommands += `    )\n`;
+                                inputCommands += `    goto validate_${config.var_name}\n`;
+                                inputCommands += `)\n`;
+                                break;
+                                
+                            case 'range':
+                                if (config.min_value !== undefined && config.max_value !== undefined) {
+                                    inputCommands += `echo.%${config.var_name}%|findstr /r "^[0-9][0-9]*$" >nul || (\n`;
+                                    inputCommands += `    echo ${config.retry_prompt || '请输入有效的数字！'}\n`;
+                                    inputCommands += `    if not ${config.hide_input && config.hide_input.includes('true') ? '1==1' : '1==0'} (`; // 非隐藏输入时重新获取
+                                    inputCommands += `        set /p "${config.var_name}="\n`;
+                                    inputCommands += `    )\n`;
+                                    inputCommands += `    goto validate_${config.var_name}\n`;
+                                    inputCommands += `)\n`;
+                                    
+                                    inputCommands += `if %${config.var_name}% LSS ${config.min_value} (\n`;
+                                    inputCommands += `    echo ${config.retry_prompt || `请输入${config.min_value}到${config.max_value}之间的数字！`}\n`;
+                                    inputCommands += `    if not ${config.hide_input && config.hide_input.includes('true') ? '1==1' : '1==0'} (`;
+                                    inputCommands += `        set /p "${config.var_name}="\n`;
+                                    inputCommands += `    )\n`;
+                                    inputCommands += `    goto validate_${config.var_name}\n`;
+                                    inputCommands += `)\n`;
+                                    
+                                    inputCommands += `if %${config.var_name}% GTR ${config.max_value} (\n`;
+                                    inputCommands += `    echo ${config.retry_prompt || `请输入${config.min_value}到${config.max_value}之间的数字！`}\n`;
+                                    inputCommands += `    if not ${config.hide_input && config.hide_input.includes('true') ? '1==1' : '1==0'} (`;
+                                    inputCommands += `        set /p "${config.var_name}="\n`;
+                                    inputCommands += `    )\n`;
+                                    inputCommands += `    goto validate_${config.var_name}\n`;
+                                    inputCommands += `)\n`;
+                                }
+                                break;
+                                
+                            case 'options':
+                                if (config.allowed_options) {
+                                    const options = config.allowed_options.split(',');
+                                    inputCommands += `set "valid=false"\n`;
+                                    
+                                    for (let i = 0; i < options.length; i++) {
+                                        const option = options[i].trim();
+                                        inputCommands += `if /i "%${config.var_name}%"=="${option}" set "valid=true"\n`;
+                                    }
+                                    
+                                    inputCommands += `if not %valid%==true (\n`;
+                                    inputCommands += `    echo ${config.retry_prompt || `请输入以下选项之一: ${config.allowed_options}`}\n`;
+                                    inputCommands += `    if not ${config.hide_input && config.hide_input.includes('true') ? '1==1' : '1==0'} (`;
+                                    inputCommands += `        set /p "${config.var_name}="\n`;
+                                    inputCommands += `    )\n`;
+                                    inputCommands += `    goto validate_${config.var_name}\n`;
+                                    inputCommands += `)\n`;
+                                }
+                                break;
+                        }
+                    }
+                    
+                    // 显示输入结果
+                    inputCommands += `\necho 用户输入: %${config.var_name}%\n`;
+                    
+                    return inputCommands;
+                    
+                // 新增模块17: 检测控制面板已安装软件
+                case 'detect_installed_software':
+                    let detectCommands = '';
+                    
+                    // 初始化变量
+                    detectCommands += `REM 检测控制面板已安装软件\n`;
+                    detectCommands += `set "SOFTWARE_FOUND=false"\n`;
+                    detectCommands += `set "SOFTWARE_VERSION="\n`;
+                    detectCommands += `set "SEARCH_TERM=${config.software_name}"\n`;
+                    detectCommands += `echo 正在检测软件: %SEARCH_TERM%\n\n`;
+                    
+                    // 输出到文件准备
+                    if (config.output_settings === 'file' && config.output_file) {
+                        detectCommands += `echo 检测结果将输出到: ${config.output_file}\n`;
+                        detectCommands += `echo 软件检测结果 > "${config.output_file}"\n`;
+                        detectCommands += `echo ================= >> "${config.output_file}"\n`;
+                    }
+                    
+                    // 构建搜索命令
+                    let searchCommands = '';
+                    
+                    // 注册表检测（64位系统）
+                    if (config.search_method === 'registry' || config.search_method === 'both') {
+                        searchCommands += `REM 通过注册表检测已安装软件\n`;
+                        searchCommands += `for %%a in ("HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\" "HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\") do (\n`;
+                        searchCommands += `    for /f "tokens=3*" %%b in ('reg query "%%a" /s /v DisplayName 2^>nul ^| findstr /i "DisplayName"') do (\n`;
+                        
+                        // 匹配逻辑
+                        if (config.match_type === 'exact') {
+                            searchCommands += `        if /i "%%c"=="%SEARCH_TERM%" (`;
+                        } else {
+                            searchCommands += `        echo %%c | findstr /i "%SEARCH_TERM%" >nul && (`;
+                        }
+                        
+                        searchCommands += `\n`;
+                        searchCommands += `            set "SOFTWARE_FOUND=true"\n`;
+                        searchCommands += `            echo 找到软件: %%c\n`;
+                        
+                        // 检查版本信息
+                        if (config.check_version && config.check_version.includes('true')) {
+                            searchCommands += `            for /f "tokens=3*" %%d in ('reg query "%%a" /v DisplayVersion 2^>nul ^| findstr /i "DisplayVersion"') do (\n`;
+                            searchCommands += `                set "SOFTWARE_VERSION=%%e"\n`;
+                            searchCommands += `                echo 版本: %%e\n`;
+                            searchCommands += `            )\n`;
+                        }
+                        
+                        // 输出到文件
+                        if (config.output_settings === 'file' && config.output_file) {
+                            searchCommands += `            echo %%c >> "${config.output_file}"\n`;
+                            if (config.check_version && config.check_version.includes('true')) {
+                                searchCommands += `            if defined SOFTWARE_VERSION echo 版本: !SOFTWARE_VERSION! >> "${config.output_file}"\n`;
+                            }
+                            searchCommands += `            echo. >> "${config.output_file}"\n`;
+                        }
+                        
+                        searchCommands += `        )\n`;
+                        searchCommands += `    )\n`;
+                        searchCommands += `)\n\n`;
+                    }
+                    
+                    // WMIC检测
+                    if (config.search_method === 'wmic' || config.search_method === 'both') {
+                        searchCommands += `REM 通过WMIC命令检测已安装软件\n`;
+                        searchCommands += `for /f "tokens=* delims=" %%a in ('wmic product get Name^,Version /format:list ^| findstr /i "Name="') do (\n`;
+                        searchCommands += `    set "PROD_NAME=%%a"\n`;
+                        searchCommands += `    setlocal enabledelayedexpansion\n`;
+                        searchCommands += `    set "PROD_NAME=!PROD_NAME:~5!"\n`;
+                        
+                        // 匹配逻辑
+                        if (config.match_type === 'exact') {
+                            searchCommands += `    if /i "!PROD_NAME!"=="%SEARCH_TERM%" (`;
+                        } else {
+                            searchCommands += `    echo !PROD_NAME! | findstr /i "%SEARCH_TERM%" >nul && (`;
+                        }
+                        
+                        searchCommands += `\n`;
+                        searchCommands += `        set "SOFTWARE_FOUND=true"\n`;
+                        searchCommands += `        echo 找到软件: !PROD_NAME!\n`;
+                        
+                        // 检查版本信息
+                        if (config.check_version && config.check_version.includes('true')) {
+                            searchCommands += `        for /f "tokens=* delims=" %%b in ('wmic product where "Name='!PROD_NAME!'" get Version /format:list ^| findstr /i "Version="') do (\n`;
+                            searchCommands += `            set "PROD_VERSION=%%b"\n`;
+                            searchCommands += `            set "PROD_VERSION=!PROD_VERSION:~8!"\n`;
+                            searchCommands += `            set "SOFTWARE_VERSION=!PROD_VERSION!"\n`;
+                            searchCommands += `            echo 版本: !PROD_VERSION!\n`;
+                            searchCommands += `        )\n`;
+                        }
+                        
+                        // 输出到文件
+                        if (config.output_settings === 'file' && config.output_file) {
+                            searchCommands += `        echo !PROD_NAME! >> "${config.output_file}"\n`;
+                            if (config.check_version && config.check_version.includes('true')) {
+                                searchCommands += `        if defined SOFTWARE_VERSION echo 版本: !SOFTWARE_VERSION! >> "${config.output_file}"\n`;
+                            }
+                            searchCommands += `        echo. >> "${config.output_file}"\n`;
+                        }
+                        
+                        searchCommands += `    )\n`;
+                        searchCommands += `    endlocal\n`;
+                        searchCommands += `)\n\n`;
+                    }
+                    
+                    // 添加搜索命令
+                    detectCommands += searchCommands;
+                    
+                    // 显示检测结果
+                    detectCommands += `REM 显示检测结果\n`;
+                    detectCommands += `echo.\n`;
+                    detectCommands += `echo ========== 检测结果 ==========\n`;
+                    detectCommands += `if "%SOFTWARE_FOUND%"=="true" (`;
+                    detectCommands += `    echo 软件 "%SEARCH_TERM%" 已安装\n`;
+                    detectCommands += `) else (`;
+                    detectCommands += `    echo 未找到软件 "%SEARCH_TERM%"\n`;
+                    detectCommands += `)\n`;
+                    detectCommands += `echo ============================\n`;
+                    detectCommands += `echo.\n`;
+                    
+                    // 设置结果变量
+                    if (config.output_settings === 'variable' && config.var_name) {
+                        detectCommands += `REM 设置结果变量\n`;
+                        detectCommands += `if "%SOFTWARE_FOUND%"=="true" (`;
+                        detectCommands += `    set "${config.var_name}=Y"\n`;
+                        detectCommands += `) else (`;
+                        detectCommands += `    set "${config.var_name}=N"\n`;
+                        detectCommands += `)\n`;
+                        detectCommands += `echo 结果变量 ${config.var_name}=%${config.var_name}%\n\n`;
+                    }
+                    
+                    return detectCommands;
+                    
+                default:
+                    return '';
+            }
+        }
+
+        // 下载BAT文件 - 修复注释编号显示
+        function downloadBatFile() {
+            if (steps.length === 0) {
+                alert('请先添加操作步骤');
+                return;
+            }
+            
+            let code = '@echo off\n';
+            code += 'REM 生成的批处理文件\n\n';
+            
+            // 使用索引+1作为注释编号，确保连续
+            steps.forEach((step, index) => {
+                const displayNumber = index + 1;
+                code += `REM ${displayNumber}. ${moduleInfo[step.type].title}\n`;
+                code += generateBatCode(step.type, step.config);
+                code += '\n';
+            });
+            
+            code += 'pause\n';
+            
+            // 创建Blob对象
+            const blob = new Blob([code], { type: 'text/plain;charset=utf-8' });
+            
+            // 创建下载链接
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'batch_script.bat';
+            
+            // 触发下载
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            // 释放URL对象
+            URL.revokeObjectURL(link.href);
+        }
+
+        // 复制代码到剪贴板
+        function copyCodeToClipboard() {
+            const codeElement = document.getElementById('bat-code');
+            const code = codeElement.textContent;
+            
+            navigator.clipboard.writeText(code).then(() => {
+                // 显示复制成功提示
+                const copyBtn = document.getElementById('copy-code');
+                const originalText = copyBtn.innerHTML;
+                copyBtn.innerHTML = '<i class="fa fa-check"></i>';
+                copyBtn.classList.add('bg-green-600');
+                
+                setTimeout(() => {
+                    copyBtn.innerHTML = originalText;
+                    copyBtn.classList.remove('bg-green-600');
+                }, 2000);
+            }).catch(err => {
+                console.error('无法复制代码: ', err);
+            });
+        }
+
+        // 清空所有步骤
+        function clearAllSteps() {
+            if (steps.length > 0 && confirm('确定要清空所有步骤吗？此操作不可撤销。')) {
+                // 清空DOM
+                document.getElementById('steps-container').innerHTML = '';
+                document.getElementById('empty-state').classList.remove('hidden');
+                document.getElementById('steps-container').classList.add('hidden');
+                
+                // 清空数据
+                steps = [];
+                currentStepId = 0;
+                
+                // 更新代码预览
+                updateCodePreview();
+            }
+        }
+
+        // 初始化事件监听器
+        function initEventListeners() {
+            // 配置对话框事件
+            document.getElementById('close-modal').addEventListener('click', closeConfigModal);
+            document.getElementById('cancel-config').addEventListener('click', closeConfigModal);
+            document.getElementById('save-config').addEventListener('click', saveConfig);
+            
+            // 删除确认对话框事件
+            document.getElementById('cancel-delete').addEventListener('click', () => {
+                document.getElementById('delete-modal').classList.add('hidden');
+            });
+            document.getElementById('confirm-delete').addEventListener('click', () => {
+                const stepId = parseInt(document.getElementById('delete-modal').dataset.stepId);
+                // 先关闭对话框
+                document.getElementById('delete-modal').classList.add('hidden');
+                // 然后删除步骤
+                deleteStep(stepId);
+            });
+            
+            // 下载按钮事件
+            document.getElementById('download-btn').addEventListener('click', downloadBatFile);
+            
+            // 复制代码按钮事件
+            document.getElementById('copy-code').addEventListener('click', copyCodeToClipboard);
+            
+            // 清空所有按钮事件
+            document.getElementById('clear-all').addEventListener('click', clearAllSteps);
+            
+            // 新建按钮事件
+            document.getElementById('new-btn').addEventListener('click', clearAllSteps);
+            
+            // 点击模态框外部关闭
+            document.getElementById('config-modal').addEventListener('click', (e) => {
+                if (e.target === document.getElementById('config-modal')) {
+                    closeConfigModal();
+                }
+            });
+            
+            document.getElementById('delete-modal').addEventListener('click', (e) => {
+                if (e.target === document.getElementById('delete-modal')) {
+                    document.getElementById('delete-modal').classList.add('hidden');
+                }
+            });
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            initDragAndDrop();
+            initEventListeners();
+        });
+    </script>
+</body>
+</html>
